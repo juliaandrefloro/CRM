@@ -89,5 +89,12 @@ export async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_payments_asaas     ON payments(asaas_id);
     CREATE INDEX IF NOT EXISTS idx_remarketing_sched  ON remarketing_jobs(scheduled_at, status);
   `);
+  // Migrações seguras (ADD COLUMN IF NOT EXISTS)
+  await db.query(`
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(60);
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS preferred_spread VARCHAR(30);
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS spread_type VARCHAR(30);
+  `);
+
   console.log('✅ Banco de dados pronto');
 }

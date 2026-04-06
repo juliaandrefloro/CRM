@@ -1,7 +1,8 @@
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  downloadMediaMessage
 } from '@whiskeysockets/baileys';
 import qrcode  from 'qrcode';
 import { db }  from './db.js';
@@ -73,16 +74,48 @@ class WAManager {
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
+
       for (const msg of messages) {
         if (msg.key.fromMe || !msg.message) continue;
+
         const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
-        const text  = msg.message.conversation
-                   || msg.message.extendedTextMessage?.text || '';
+        const msgContent = msg.message;
+
+        // ── Mensagem de texto ──
+        const text = msgContent.conversation
+                  || msgContent.extendedTextMessage?.text
+                  || '';
+
+        // ── Mensagem de áudio/voz ──
+        const isAudio = !!(msgContent.audioMessage || msgContent.pttMessage);
+
         if (text) {
           try {
             await botEngine.handle(instanceId, sock, phone, text);
           } catch(e) {
-            console.error('[BOT ERROR]', e.message);
+            console.error('[BOT TEXT ERROR]', e.message);
+          }
+        } else if (isAudio) {
+          try {
+            // Baixa o áudio
+            const audioBuffer = await downloadMediaMessage(msg, 'buffer', {}, {
+              logger,
+              reuploadRequest: sock.updateMediaMessage
+            });
+
+            const mimeType = msgContent.audioMessage?.mimetype
+                          || msgContent.pttMessage?.mimetype
+                          || 'audio/ogg; codecs=opus';
+
+            await botEngine.handle(instanceId, sock, phone, '', audioBuffer, mimeType);
+          } catch(e) {
+            console.error('[BOT AUDIO ERROR]', e.message);
+            // Fallback: avisa que não conseguiu processar o áudio
+            try {
+              await this.sendText(instanceId, phone,
+                `🙏 Recebi seu áudio, mas tive dificuldade em processá-lo. Poderia escrever sua mensagem? Estou aqui para ajudar. 💜`
+              );
+            } catch(e2) {}
           }
         }
       }
