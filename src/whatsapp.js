@@ -257,35 +257,63 @@ class WAManager {
       // 'append' = mensagens históricas do syncFullHistory
       if (type !== 'notify' && type !== 'append') return;
 
+      addLog('INFO', `[MSGS] Recebidas ${messages.length} mensagem(ns) — tipo: ${type}`);
+
       for (const msg of messages) {
         if (!msg.message) continue;
+
+        // Ignora mensagens de protocolo interno do WhatsApp
+        if (msg.message.protocolMessage) continue;
+        if (msg.message.reactionMessage) continue;
+        if (msg.message.pollUpdateMessage) continue;
 
         const jid   = msg.key.remoteJid || '';
         const phone = jid.replace('@s.whatsapp.net', '').replace('@g.us', '');
         if (!phone || jid.endsWith('@g.us')) continue; // ignora grupos
+        if (jid === 'status@broadcast') continue; // ignora status
 
         const msgContent = msg.message;
-        const isFromMe   = msg.key.fromMe;
+        const isFromMe   = msg.key.fromMe === true;
 
         // ── Extrai conteúdo ──────────────────────────────────────────────
-        const text = msgContent.conversation
-                  || msgContent.extendedTextMessage?.text
-                  || msgContent.imageMessage?.caption
-                  || msgContent.videoMessage?.caption
-                  || msgContent.documentMessage?.caption
+        // Suporte a mensagens encaminhadas e contextuais
+        const innerMsg = msgContent.ephemeralMessage?.message
+                      || msgContent.viewOnceMessage?.message
+                      || msgContent.viewOnceMessageV2?.message?.viewOnceMessage?.message
+                      || msgContent;
+
+        const text = innerMsg.conversation
+                  || innerMsg.extendedTextMessage?.text
+                  || innerMsg.imageMessage?.caption
+                  || innerMsg.videoMessage?.caption
+                  || innerMsg.documentMessage?.caption
+                  || innerMsg.buttonsResponseMessage?.selectedDisplayText
+                  || innerMsg.listResponseMessage?.title
+                  || innerMsg.templateButtonReplyMessage?.selectedDisplayText
                   || '';
 
-        const isAudio = !!(msgContent.audioMessage || msgContent.pttMessage);
-        const isImage = !!msgContent.imageMessage;
-        const isVideo = !!msgContent.videoMessage;
+        const isAudio = !!(innerMsg.audioMessage || innerMsg.pttMessage);
+        const isImage = !!innerMsg.imageMessage;
+        const isVideo = !!innerMsg.videoMessage;
+        const isDoc   = !!innerMsg.documentMessage;
+        const isSticker = !!innerMsg.stickerMessage;
 
         const displayContent = text
-          || (isAudio ? '[Áudio 🎙️]' : isImage ? '[Imagem 🖼️]' : isVideo ? '[Vídeo 🎥]' : '[Mídia]');
+          || (isAudio   ? '[Áudio 🎙️]'
+            : isImage   ? '[Imagem 🖼️]'
+            : isVideo   ? '[Vídeo 🎥]'
+            : isDoc     ? '[Documento 📄]'
+            : isSticker ? '[Sticker 🎭]'
+            : '[Mídia]');
 
         // ── Salva no banco ───────────────────────────────────────────────
         const role  = isFromMe ? 'assistant' : 'user';
         const agent = isFromMe ? 'bot' : 'whatsapp';
         await saveMessage(instanceId, phone, role, displayContent, agent);
+
+        if (type === 'notify') {
+          addLog('INFO', `[MSG ${type}] ${phone} | ${role} | ${displayContent.substring(0, 60)}`);
+        }
 
         // ── Processa com bot (apenas mensagens novas e recebidas) ────────
         if (type === 'notify' && !isFromMe) {
@@ -301,8 +329,8 @@ class WAManager {
                 logger,
                 reuploadRequest: sock.updateMediaMessage
               });
-              const mimeType = msgContent.audioMessage?.mimetype
-                            || msgContent.pttMessage?.mimetype
+              const mimeType = innerMsg.audioMessage?.mimetype
+                            || innerMsg.pttMessage?.mimetype
                             || 'audio/ogg; codecs=opus';
               await botEngine.handle(instanceId, sock, phone, '', audioBuffer, mimeType);
             } catch (e) {
