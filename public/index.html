@@ -1531,10 +1531,12 @@ function fmtFull(iso) {
 async function loadFabrica() {
   // Carrega instâncias no seletor
   const insts = await api('/api/instances');
+  if (!insts || !insts.length) return;
   const sel = document.getElementById('fabrica-inst-sel');
   sel.innerHTML = insts.map(i => `<option value="${i.id}">${esc(i.name)}</option>`).join('');
-  if (!fabricaInstId && insts.length) fabricaInstId = insts[0].id;
-  if (fabricaInstId) sel.value = fabricaInstId;
+  // Garante que fabricaInstId está definido ANTES de qualquer outra chamada
+  if (!fabricaInstId) fabricaInstId = insts[0].id;
+  sel.value = fabricaInstId;
   // Carrega a tab ativa
   await loadFabricaAgentes();
 }
@@ -1561,7 +1563,7 @@ async function loadFabricaAgentes() {
   const box = document.getElementById('fabrica-agentes-content');
   box.innerHTML = '<span style="color:#4c3575">Carregando...</span>';
   const agentes = await api(`/api/fabrica/${fabricaInstId}/agentes`);
-  if (!agentes || agentes.error) {
+  if (!agentes || agentes.error || !Array.isArray(agentes) || agentes.length === 0) {
     box.innerHTML = `<div class="agent-empty"><div class="icon">🏭</div><p>Nenhum agente configurado ainda.</p><button class="btn btn-primary" onclick="fabricaSeed()">&#9881; Criar Estrutura Padrão</button></div>`;
     return;
   }
