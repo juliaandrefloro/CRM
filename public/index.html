@@ -49,9 +49,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f0c1a; c
 .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
 .btn-green { background: #14532d; color: #86efac; border: 1px solid #166534; }
 .btn-green:hover { background: #166534; }
+.btn-record { background: #7c3aed; color: #fff; border-radius: 50%; width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.btn-record.recording { background: #dc2626; animation: pulse-rec 1s infinite; }
+@keyframes pulse-rec { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)} 50%{box-shadow:0 0 0 8px rgba(220,38,38,0)} }
 
 /* ── Instance Grid ── */
-.instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+.instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .inst-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 12px; padding: 20px; }
 .inst-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
 .inst-phone { font-size: 13px; color: #6b4fa0; margin-bottom: 14px; }
@@ -62,9 +65,13 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f0c1a; c
 .dot-qr_ready { background: #f59e0b; box-shadow: 0 0 6px #f59e0b88; animation: pulse 1.5s infinite; }
 .dot-connecting { background: #3b82f6; animation: pulse 1s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── QR Code ── */
 .qr-wrap { text-align: center; margin: 14px 0; }
-.qr-img { width: 180px; height: 180px; border-radius: 10px; background: #fff; padding: 8px; }
-.qr-tip { font-size: 12px; color: #6b4fa0; margin-top: 6px; }
+.qr-img { width: 200px; height: 200px; border-radius: 10px; background: #fff; padding: 8px; display: block; margin: 0 auto; }
+.qr-tip { font-size: 12px; color: #6b4fa0; margin-top: 8px; }
+.qr-countdown { font-size: 11px; color: #f59e0b; margin-top: 4px; }
+.qr-placeholder { width: 200px; height: 200px; border-radius: 10px; background: #1a1428; border: 2px dashed #3d2d5a; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #4c3575; font-size: 13px; flex-direction: column; gap: 8px; }
 .inst-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ── Modal ── */
@@ -109,17 +116,18 @@ tr:hover td { background: #1a1428; }
 
 /* ── Chat Layout ── */
 .chat-wrap { display: flex; height: calc(100vh - 118px); }
-.contact-panel { width: 280px; border-right: 1px solid #2d2040; overflow-y: auto; flex-shrink: 0; }
-.contact-search { padding: 12px; border-bottom: 1px solid #2d2040; }
+.contact-panel { width: 280px; border-right: 1px solid #2d2040; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; }
+.contact-search { padding: 12px; border-bottom: 1px solid #2d2040; flex-shrink: 0; }
 .contact-search input { background: #0f0c1a; border-color: #2d2040; }
+.contact-list-scroll { flex: 1; overflow-y: auto; }
 .contact-item { padding: 13px 16px; cursor: pointer; border-bottom: 1px solid #1a1428; transition: background .1s; }
 .contact-item:hover, .contact-item.active { background: #1e1630; }
 .contact-item .c-name { font-size: 14px; font-weight: 500; display: flex; justify-content: space-between; }
 .contact-item .c-phone { font-size: 12px; color: #6b4fa0; margin-top: 2px; }
-.contact-item .c-preview { font-size: 12px; color: #9f8ab8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-item .c-preview { font-size: 12px; color: #9f8ab8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 .contact-item .c-time { font-size: 11px; color: #4c3575; }
 .chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.chat-header { padding: 14px 20px; border-bottom: 1px solid #2d2040; display: flex; align-items: center; justify-content: space-between; }
+.chat-header { padding: 14px 20px; border-bottom: 1px solid #2d2040; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .chat-header-name { font-weight: 600; }
 .chat-header-phone { font-size: 12px; color: #6b4fa0; }
 .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -127,14 +135,19 @@ tr:hover td { background: #1a1428; }
 .msg.user      { background: #231939; align-self: flex-start; border-bottom-left-radius: 3px; }
 .msg.assistant { background: #3b0764; align-self: flex-end; border-bottom-right-radius: 3px; }
 .msg-time { font-size: 11px; color: #6b4fa0; margin-top: 5px; text-align: right; }
-.chat-input { padding: 14px 18px; border-top: 1px solid #2d2040; display: flex; gap: 10px; }
+.msg-audio { display: flex; align-items: center; gap: 8px; }
+.msg-audio audio { height: 32px; }
+
+/* ── Chat Input ── */
+.chat-input { padding: 12px 16px; border-top: 1px solid #2d2040; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .chat-input input { flex: 1; }
-.empty-chat { flex: 1; display: flex; align-items: center; justify-content: center; color: #3d2d5a; font-size: 15px; flex-direction: column; gap: 10px; }
+.audio-status { font-size: 12px; color: #f59e0b; padding: 4px 8px; background: #451a03; border-radius: 6px; display: none; }
 
 /* ── Info panel ── */
 .info-tip { background: #120e20; border: 1px solid #2d2040; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #9f8ab8; line-height: 1.7; }
 .info-tip strong { color: #c9a8f0; }
 code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #a78bfa; }
+.empty-chat { flex: 1; display: flex; align-items: center; justify-content: center; color: #3d2d5a; font-size: 15px; flex-direction: column; gap: 10px; }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }
@@ -147,20 +160,20 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
 <!-- ═══ Sidebar ═══ -->
 <div class="sidebar">
   <div class="logo">🔮 CRM Tarot <span>Painel de Controle</span></div>
-  <div class="nav-item active" data-page="dashboard">
+  <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this)">
     <span class="nav-icon">📊</span> Dashboard
   </div>
-  <div class="nav-item" data-page="instances">
+  <div class="nav-item" data-page="instances" onclick="navigate('instances',this)">
     <span class="nav-icon">📱</span> WhatsApp
   </div>
-  <div class="nav-item" data-page="conversations">
+  <div class="nav-item" data-page="conversations" onclick="navigate('conversations',this)">
     <span class="nav-icon">💬</span> Conversas
   </div>
-  <div class="nav-item" data-page="chatbot">
+  <div class="nav-item" data-page="chatbot" onclick="navigate('chatbot',this)">
     <span class="nav-icon">🤖</span> Chatbot
   </div>
   <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:10px;">
-    <span>v1.0 · Tarot CRM</span>
+    <span>v2.0 · Tarot CRM</span>
     <a href="/api/auth/logout" style="color:#6b4fa0;font-size:12px;text-decoration:none;display:flex;align-items:center;gap:6px;" onmouseover="this.style.color='#c9a8f0'" onmouseout="this.style.color='#6b4fa0'">🚪 Sair do painel</a>
   </div>
 </div>
@@ -172,134 +185,147 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
     <div class="topbar-actions" id="topbar-actions"></div>
   </div>
 
-  <!-- Dashboard -->
+  <!-- ── Dashboard ── -->
   <div class="page active" id="page-dashboard">
     <div class="stats-grid">
       <div class="stat-card"><h3>WhatsApps Conectados</h3><div class="value" id="s-connected">–</div><div class="sub" id="s-inst-total">de 0 instâncias</div></div>
       <div class="stat-card"><h3>Contatos / Leads</h3><div class="value" id="s-contacts">–</div></div>
       <div class="stat-card"><h3>Mensagens Hoje</h3><div class="value" id="s-today">–</div></div>
-      <div class="stat-card"><h3>Faturamento (30d)</h3><div class="value" id="s-revenue">–</div></div>
-      <div class="stat-card"><h3>Consultas (30d)</h3><div class="value" id="s-readings">–</div></div>
       <div class="stat-card"><h3>Total Mensagens</h3><div class="value" id="s-total">–</div></div>
+      <div class="stat-card"><h3>Consultas (mês)</h3><div class="value" id="s-readings">–</div></div>
+      <div class="stat-card"><h3>Faturamento (30d)</h3><div class="value" id="s-revenue">–</div></div>
     </div>
     <div class="card">
-      <div class="card-title">Instâncias</div>
-      <div id="dash-instances" style="color:#4c3575;font-size:14px">Carregando...</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Como começar</div>
-      <div class="info-tip">
-        1. Vá em <strong>📱 WhatsApp</strong> e clique em <strong>"+ Adicionar WhatsApp"</strong><br>
-        2. Escaneie o QR Code com o chip dedicado (Configurações → Dispositivos Conectados)<br>
-        3. Vá em <strong>🤖 Chatbot</strong> e configure os gatilhos de resposta automática<br>
-        4. Aguarde mensagens chegarem em <strong>💬 Conversas</strong>
-      </div>
+      <div class="card-title">Instâncias WhatsApp</div>
+      <div id="dash-instances"><span style="color:#4c3575">Carregando...</span></div>
     </div>
   </div>
 
-  <!-- WhatsApp Instances -->
+  <!-- ── WhatsApp Instances ── -->
   <div class="page" id="page-instances">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span style="color:#9f8ab8;font-size:14px">Conecte múltiplos números via QR Code</span>
+      <h2 style="font-size:18px;color:#c9a8f0">Instâncias WhatsApp</h2>
       <button class="btn btn-primary" onclick="openModal('modal-add-inst')">+ Adicionar WhatsApp</button>
     </div>
     <div class="instance-grid" id="instances-grid">
-      <div style="color:#4c3575;font-size:14px">Carregando...</div>
+      <div style="color:#4c3575;font-size:14px;padding:20px 0">Carregando...</div>
     </div>
   </div>
 
-  <!-- Conversas -->
-  <div class="page" id="page-conversations">
-    <div class="tab-bar" id="conv-tabs"></div>
+  <!-- ── Conversas ── -->
+  <div class="page" id="page-conversations" style="padding:0;display:none;flex-direction:column;">
+    <div class="tab-bar" style="padding:16px 24px 0;flex-shrink:0" id="conv-tabs"></div>
     <div class="chat-wrap" id="chat-wrap">
-      <div class="empty-chat" style="width:100%">
-        <span style="font-size:32px">💬</span>
-        <span>Selecione uma instância acima para ver as conversas</span>
-      </div>
+      <div class="empty-chat" style="width:100%"><span style="font-size:32px">📭</span><span>Selecione uma instância acima</span></div>
     </div>
   </div>
 
-  <!-- Chatbot -->
+  <!-- ── Chatbot ── -->
   <div class="page" id="page-chatbot">
     <div class="tab-bar" id="bot-tabs"></div>
-    <div id="bot-content">
-      <div style="color:#4c3575;font-size:14px">Selecione uma instância acima</div>
-    </div>
+    <div id="bot-content"></div>
   </div>
 </div>
 
-<!-- ═══ Modal: Adicionar Instância ═══ -->
+<!-- ═══ Modals ═══ -->
+<!-- Adicionar instância -->
 <div class="modal-bg" id="modal-add-inst">
   <div class="modal">
-    <h2>Adicionar WhatsApp</h2>
+    <h2>➕ Adicionar WhatsApp</h2>
     <div class="form-group">
-      <label>Nome da instância</label>
-      <input type="text" id="inst-name" placeholder="Ex: Tarot Oficial, Atendimento VIP...">
-      <div class="form-hint">Use nomes descritivos para identificar cada número facilmente</div>
+      <label>Nome da Instância</label>
+      <input type="text" id="inst-name" placeholder="Ex: Isis Oráculo, Lumina..." onkeydown="if(event.key==='Enter')addInstance()">
+      <div class="form-hint">Identifica qual número de WhatsApp é este</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-add-inst')">Cancelar</button>
-      <button class="btn btn-primary" onclick="addInstance()">Criar & Gerar QR Code</button>
+      <button class="btn btn-primary" onclick="addInstance()">Criar e Conectar</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Modal: Fluxo Chatbot ═══ -->
+<!-- Novo fluxo chatbot -->
 <div class="modal-bg" id="modal-flow">
   <div class="modal">
     <h2 id="flow-modal-title">Novo Fluxo de Resposta</h2>
     <div class="form-group">
-      <label>Gatilho — palavra ou frase que o cliente envia</label>
-      <input type="text" id="flow-trigger" placeholder='Ex: oi, olá, quero consulta, preço'>
-      <div class="form-hint">Use <code>*</code> para responder qualquer mensagem não mapeada. Sem diferenciar maiúsculas.</div>
+      <label>Gatilho (texto que o cliente envia)</label>
+      <input type="text" id="flow-trigger" placeholder="Ex: oi, olá, quero tarot...">
+      <div class="form-hint">Use <code>*</code> para responder qualquer mensagem não mapeada</div>
     </div>
     <div class="form-group">
       <label>Resposta automática</label>
-      <textarea id="flow-response" placeholder="Olá! 🔮 Bem-vindo ao espaço sagrado do Tarot...&#10;&#10;Você pode usar emojis e quebras de linha normalmente."></textarea>
+      <textarea id="flow-response" placeholder="Mensagem que será enviada automaticamente..."></textarea>
     </div>
     <div class="form-group">
-      <label>Próxima etapa (opcional)</label>
-      <input type="text" id="flow-stage" placeholder='Ex: aguardando_area, menu_tiragens'>
-      <div class="form-hint">Usado para encadear fluxos condicionais. Deixe vazio se não precisar.</div>
+      <label>Próxima Etapa (opcional)</label>
+      <input type="text" id="flow-stage" placeholder="Ex: awaiting_question, menu...">
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-flow')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveFlow()">Salvar Fluxo</button>
+      <button class="btn btn-primary" onclick="saveFlow()">Salvar</button>
     </div>
   </div>
 </div>
 
 <script>
-const API = '';
-let convInstId = null;
-let botInstId  = null;
+// ══════════════════════════════════════════════════════════════════════════════
+// Estado global
+// ══════════════════════════════════════════════════════════════════════════════
+let qrPollers     = {};
+let chatPoller    = null;
+let msgPoller     = null;
+let convInstId    = null;
 let activeContactId = null;
-let editFlowId = null;
-let qrPollers  = {};
-let chatPoller = null;
+let activePhone   = null;
+let botInstId     = null;
+let editFlowId    = null;
+let mediaRecorder = null;
+let audioChunks   = [];
+let isRecording   = false;
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 // Navegação
-// ══════════════════════════════════════════
-document.querySelectorAll('.nav-item').forEach(el => {
-  el.addEventListener('click', () => {
-    const page = el.dataset.page;
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('page-' + page).classList.add('active');
-    document.getElementById('topbar-title').textContent = el.textContent.trim();
-    clearInterval(chatPoller);
-    if (page === 'dashboard')     loadDashboard();
-    if (page === 'instances')     loadInstances();
-    if (page === 'conversations') loadConvTabs();
-    if (page === 'chatbot')       loadBotTabs();
+// ══════════════════════════════════════════════════════════════════════════════
+function navigate(page, el) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const target = document.getElementById('page-' + page);
+  if (target) {
+    target.style.display = page === 'conversations' ? 'flex' : 'block';
+    target.classList.add('active');
+  }
+  if (el) el.classList.add('active');
+
+  document.getElementById('topbar-title').textContent = {
+    dashboard: 'Dashboard', instances: 'WhatsApp', conversations: 'Conversas', chatbot: 'Chatbot'
+  }[page] || page;
+
+  // Limpa pollers ao sair
+  if (page !== 'instances') stopAllQRPollers();
+  if (page !== 'conversations') { clearInterval(chatPoller); clearInterval(msgPoller); }
+
+  // Carrega dados da página
+  if (page === 'dashboard')     loadDashboard();
+  if (page === 'instances')     loadInstances();
+  if (page === 'conversations') loadConvTabs();
+  if (page === 'chatbot')       loadBotTabs();
+}
+
+// Inicializa navegação nos itens da sidebar
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    navigate(item.dataset.page, item);
   });
 });
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 // Dashboard
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadDashboard() {
   const d = await api('/api/dashboard');
   document.getElementById('s-connected').textContent = d.connected ?? '–';
@@ -309,8 +335,7 @@ async function loadDashboard() {
   document.getElementById('s-total').textContent     = d.totalMessages ?? '–';
   document.getElementById('s-readings').textContent  = d.readingsMonth ?? '–';
   document.getElementById('s-revenue').textContent   = d.revenueMonth != null
-    ? 'R$ ' + parseFloat(d.revenueMonth).toFixed(2).replace('.', ',')
-    : '–';
+    ? 'R$ ' + parseFloat(d.revenueMonth).toFixed(2).replace('.', ',') : '–';
 
   const box = document.getElementById('dash-instances');
   if (!d.instances?.length) {
@@ -328,9 +353,9 @@ async function loadDashboard() {
       </div>`).join('') + '</div>';
 }
 
-// ══════════════════════════════════════════
-// Instâncias
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+// Instâncias WhatsApp
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadInstances() {
   const insts = await api('/api/instances');
   const grid = document.getElementById('instances-grid');
@@ -340,18 +365,29 @@ async function loadInstances() {
   }
   grid.innerHTML = insts.map(instCard).join('');
   insts.forEach(i => {
-    if (i.status === 'qr_ready' || i.status === 'connecting') startQRPoll(i.id);
+    if (i.status === 'qr_ready' || i.status === 'connecting') {
+      startQRPoll(i.id);
+    }
   });
 }
 
 function instCard(i) {
-  const qrHtml = i.status === 'qr_ready'
-    ? `<div class="qr-wrap"><img class="qr-img" id="qr-${i.id}" src="" alt="QR"><p class="qr-tip">Escaneie com WhatsApp → Dispositivos conectados</p></div>`
+  const qrHtml = (i.status === 'qr_ready' || i.status === 'connecting')
+    ? `<div class="qr-wrap" id="qrwrap-${i.id}">
+         <div class="qr-placeholder" id="qr-placeholder-${i.id}">
+           <span style="font-size:24px">⏳</span>
+           <span>Gerando QR Code...</span>
+         </div>
+         <img class="qr-img" id="qr-${i.id}" src="" alt="QR" style="display:none">
+         <p class="qr-tip">Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo</p>
+         <p class="qr-countdown" id="qr-cd-${i.id}"></p>
+       </div>`
     : '';
   const btns = [];
-  if (i.status === 'disconnected') btns.push(`<button class="btn btn-primary btn-sm" onclick="connectInst(${i.id})">Conectar</button>`);
+  if (i.status === 'disconnected') btns.push(`<button class="btn btn-primary btn-sm" onclick="connectInst(${i.id})">🔌 Conectar</button>`);
   if (i.status === 'connected')    btns.push(`<button class="btn btn-danger btn-sm" onclick="disconnectInst(${i.id})">Desconectar</button>`);
-  btns.push(`<button class="btn btn-outline btn-sm" onclick="deleteInst(${i.id})">Excluir</button>`);
+  if (i.status === 'qr_ready' || i.status === 'connecting') btns.push(`<button class="btn btn-outline btn-sm" onclick="refreshQR(${i.id})">🔄 Novo QR</button>`);
+  btns.push(`<button class="btn btn-outline btn-sm" onclick="deleteInst(${i.id})">🗑️ Excluir</button>`);
   return `
     <div class="inst-card" id="inst-${i.id}">
       <div class="inst-name">${esc(i.name)}</div>
@@ -364,36 +400,101 @@ function instCard(i) {
 
 function startQRPoll(id) {
   if (qrPollers[id]) return;
+  let attempts = 0;
+  const maxAttempts = 40; // 2 minutos (40 × 3s)
+
   qrPollers[id] = setInterval(async () => {
-    const { qr } = await api('/api/instances/' + id + '/qr');
-    const img = document.getElementById('qr-' + id);
+    attempts++;
+    const { qr, status } = await api('/api/instances/' + id + '/qr');
+
+    const img         = document.getElementById('qr-' + id);
+    const placeholder = document.getElementById('qr-placeholder-' + id);
+    const countdown   = document.getElementById('qr-cd-' + id);
+    const instEl      = document.getElementById('inst-' + id);
+
+    if (!instEl) {
+      stopQRPoller(id);
+      return;
+    }
+
     if (qr && img) {
       img.src = qr;
-    } else if (!qr && document.getElementById('inst-' + id)) {
-      clearInterval(qrPollers[id]);
-      delete qrPollers[id];
+      img.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+      const remaining = Math.max(0, maxAttempts - attempts) * 3;
+      if (countdown) countdown.textContent = `QR expira em ~${remaining}s`;
+    }
+
+    // Conectou com sucesso
+    if (status === 'connected') {
+      stopQRPoller(id);
       await loadInstances();
+      return;
+    }
+
+    // QR expirou ou erro
+    if (attempts >= maxAttempts || (!qr && status === 'disconnected' && attempts > 5)) {
+      stopQRPoller(id);
+      await loadInstances();
+      return;
     }
   }, 3000);
+}
+
+function stopQRPoller(id) {
+  if (qrPollers[id]) {
+    clearInterval(qrPollers[id]);
+    delete qrPollers[id];
+  }
+}
+
+function stopAllQRPollers() {
+  Object.keys(qrPollers).forEach(id => stopQRPoller(parseInt(id)));
 }
 
 async function addInstance() {
   const name = document.getElementById('inst-name').value.trim();
   if (!name) return alert('Digite um nome para a instância');
-  await api('/api/instances', 'POST', { name });
+  const inst = await api('/api/instances', 'POST', { name });
   document.getElementById('inst-name').value = '';
   closeModal('modal-add-inst');
   await loadInstances();
-  setTimeout(loadInstances, 5000);
+  // Inicia poll do QR automaticamente
+  if (inst.id) startQRPoll(inst.id);
 }
 
-async function connectInst(id)    { await api('/api/instances/'+id+'/connect','POST'); loadInstances(); setTimeout(loadInstances,4000); }
-async function disconnectInst(id) { await api('/api/instances/'+id+'/disconnect','POST'); loadInstances(); }
-async function deleteInst(id)     { if (!confirm('Excluir esta instância? A sessão do WhatsApp será removida.')) return; await api('/api/instances/'+id,'DELETE'); loadInstances(); }
+async function connectInst(id) {
+  await api('/api/instances/' + id + '/connect', 'POST');
+  await loadInstances();
+  startQRPoll(id);
+}
 
-// ══════════════════════════════════════════
+async function disconnectInst(id) {
+  if (!confirm('Desconectar esta instância?')) return;
+  await api('/api/instances/' + id + '/disconnect', 'POST');
+  stopQRPoller(id);
+  await loadInstances();
+}
+
+async function refreshQR(id) {
+  stopQRPoller(id);
+  await api('/api/instances/' + id + '/disconnect', 'POST');
+  await new Promise(r => setTimeout(r, 1500));
+  await api('/api/instances/' + id + '/connect', 'POST');
+  await loadInstances();
+  startQRPoll(id);
+}
+
+async function deleteInst(id) {
+  if (!confirm('Excluir esta instância? A sessão do WhatsApp será removida permanentemente.')) return;
+  stopQRPoller(id);
+  await api('/api/instances/' + id, 'DELETE');
+  await loadInstances();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // Conversas
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadConvTabs() {
   const insts = await api('/api/instances');
   const bar = document.getElementById('conv-tabs');
@@ -404,23 +505,26 @@ async function loadConvTabs() {
   bar.innerHTML = insts.map(i =>
     `<div class="tab ${convInstId==i.id?'active':''}" onclick="selectConvInst(${i.id},this)">${esc(i.name)}</div>`
   ).join('');
-  if (!convInstId) selectConvInst(insts[0].id, bar.firstChild);
+  if (!convInstId && insts.length) selectConvInst(insts[0].id, bar.firstChild);
 }
 
 async function selectConvInst(id, el) {
   convInstId = id;
   activeContactId = null;
+  activePhone = null;
   document.querySelectorAll('#conv-tabs .tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  await renderContacts();
+  if (el) el.classList.add('active');
   clearInterval(chatPoller);
-  chatPoller = setInterval(renderContacts, 8000);
+  clearInterval(msgPoller);
+  await renderContacts();
+  chatPoller = setInterval(renderContacts, 6000);
 }
 
 async function renderContacts() {
   if (!convInstId) return;
   const contacts = await api('/api/messages/' + convInstId + '/contacts');
   const wrap = document.getElementById('chat-wrap');
+  if (!wrap) return;
 
   if (!contacts.length) {
     wrap.innerHTML = `<div class="empty-chat" style="width:100%"><span style="font-size:32px">📭</span><span>Aguardando as primeiras mensagens...</span></div>`;
@@ -428,27 +532,37 @@ async function renderContacts() {
   }
 
   // Preserva painel de chat se já aberto
-  const hasChat = !!document.getElementById('chat-panel-inner');
+  const existingPanel = document.getElementById('chat-panel-inner');
+  const contactListEl = document.getElementById('contact-list');
 
-  wrap.innerHTML = `
-    <div class="contact-panel">
-      <div class="contact-search"><input type="text" placeholder="🔍 Buscar contato..." oninput="filterContacts(this.value)"></div>
-      <div id="contact-list">
-        ${contacts.map(c => `
-          <div class="contact-item ${activeContactId==c.id?'active':''}" onclick="openChat(${c.id},'${esc(c.name||c.phone)}','${esc(c.phone)}')" id="ci-${c.id}">
-            <div class="c-name"><span>${esc(c.name||c.phone)}</span><span class="c-time">${fmtTime(c.last_at)}</span></div>
-            <div class="c-phone">${c.phone}</div>
-            <div class="c-preview">${esc(c.last_message||'Sem mensagens')}</div>
-          </div>`).join('')}
+  if (!existingPanel) {
+    wrap.innerHTML = `
+      <div class="contact-panel">
+        <div class="contact-search"><input type="text" placeholder="🔍 Buscar contato..." oninput="filterContacts(this.value)"></div>
+        <div class="contact-list-scroll" id="contact-list"></div>
       </div>
-    </div>
-    <div class="chat-panel" id="chat-panel-inner">
-      <div class="empty-chat"><span style="font-size:28px">👆</span><span>Selecione uma conversa</span></div>
-    </div>`;
+      <div class="chat-panel" id="chat-panel-inner">
+        <div class="empty-chat"><span style="font-size:28px">👆</span><span>Selecione uma conversa</span></div>
+      </div>`;
+  }
 
+  // Atualiza apenas a lista de contatos
+  const listEl = document.getElementById('contact-list');
+  if (listEl) {
+    listEl.innerHTML = contacts.map(c => `
+      <div class="contact-item ${activeContactId==c.id?'active':''}" onclick="openChat(${c.id},'${esc(c.name||c.phone)}','${esc(c.phone)}')" id="ci-${c.id}">
+        <div class="c-name"><span>${esc(c.name||c.phone)}</span><span class="c-time">${fmtTime(c.last_at)}</span></div>
+        <div class="c-phone">${c.phone}</div>
+        <div class="c-preview">${esc(c.last_message||'Sem mensagens')}</div>
+      </div>`).join('');
+  }
+
+  // Re-abre chat ativo se ainda existe
   if (activeContactId) {
     const c = contacts.find(x => x.id === activeContactId);
-    if (c) openChat(c.id, c.name||c.phone, c.phone);
+    if (c && !document.getElementById('chat-msgs')) {
+      openChat(c.id, c.name||c.phone, c.phone);
+    }
   }
 }
 
@@ -460,48 +574,162 @@ function filterContacts(q) {
 
 async function openChat(contactId, name, phone) {
   activeContactId = contactId;
+  activePhone = phone;
+  clearInterval(msgPoller);
+
   document.querySelectorAll('.contact-item').forEach(c => c.classList.remove('active'));
   const ci = document.getElementById('ci-' + contactId);
   if (ci) ci.classList.add('active');
 
+  await renderMessages(contactId, name, phone);
+
+  // Atualiza mensagens a cada 4 segundos
+  msgPoller = setInterval(() => refreshMessages(contactId), 4000);
+}
+
+async function renderMessages(contactId, name, phone) {
   const msgs = await api('/api/messages/contact/' + contactId);
   const panel = document.getElementById('chat-panel-inner');
   if (!panel) return;
 
   panel.innerHTML = `
     <div class="chat-header">
-      <div><div class="chat-header-name">${esc(name)}</div><div class="chat-header-phone">+${phone}</div></div>
+      <div>
+        <div class="chat-header-name">${esc(name)}</div>
+        <div class="chat-header-phone">+${phone}</div>
+      </div>
     </div>
     <div class="chat-messages" id="chat-msgs">
-      ${msgs.map(m => `
-        <div class="msg ${m.role}">
-          <div>${esc(m.content).replace(/\n/g,'<br>')}</div>
-          <div class="msg-time">${fmtFull(m.sent_at)}</div>
-        </div>`).join('')}
+      ${msgs.map(m => renderMsg(m)).join('')}
     </div>
     <div class="chat-input">
-      <input type="text" id="manual-input" placeholder="Enviar mensagem manual..." onkeydown="if(event.key==='Enter')sendManual('${phone}')">
-      <button class="btn btn-primary" onclick="sendManual('${phone}')">Enviar</button>
+      <input type="text" id="manual-input" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendManual()">
+      <button class="btn btn-primary btn-sm" onclick="sendManual()">Enviar</button>
+      <button class="btn btn-record" id="btn-record" onclick="toggleRecord()" title="Gravar áudio">🎙️</button>
+      <span class="audio-status" id="audio-status">⏺ Gravando...</span>
     </div>`;
 
+  scrollToBottom();
+}
+
+async function refreshMessages(contactId) {
+  if (!document.getElementById('chat-msgs')) return;
+  const msgs = await api('/api/messages/contact/' + contactId);
   const box = document.getElementById('chat-msgs');
-  if (box) box.scrollTop = box.scrollHeight;
+  if (!box) return;
+  const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  box.innerHTML = msgs.map(m => renderMsg(m)).join('');
+  if (wasAtBottom) scrollToBottom();
 }
 
-async function sendManual(phone) {
+function renderMsg(m) {
+  const isAudio = m.content === '[Áudio]' || m.content === '[Áudio enviado]';
+  const content = isAudio
+    ? `<div class="msg-audio">🎵 <em style="color:#9f8ab8;font-size:13px">Mensagem de áudio</em></div>`
+    : esc(m.content).replace(/\n/g, '<br>');
+  return `
+    <div class="msg ${m.role}">
+      <div>${content}</div>
+      <div class="msg-time">${fmtFull(m.sent_at)}</div>
+    </div>`;
+}
+
+function scrollToBottom() {
+  const box = document.getElementById('chat-msgs');
+  if (box) setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+}
+
+async function sendManual() {
   const input = document.getElementById('manual-input');
-  const text = input.value.trim();
-  if (!text || !convInstId) return;
+  const text = input?.value?.trim();
+  if (!text || !convInstId || !activePhone) return;
+  input.value = '';
+  input.disabled = true;
   try {
-    await api('/api/messages/'+convInstId+'/send', 'POST', { phone, text });
-    input.value = '';
-    await openChat(activeContactId, '', phone);
-  } catch(e) { alert('Erro ao enviar: ' + e.message); }
+    await api('/api/messages/' + convInstId + '/send', 'POST', { phone: activePhone, text });
+    await refreshMessages(activeContactId);
+  } catch(e) {
+    alert('Erro ao enviar: ' + e.message);
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
 }
 
-// ══════════════════════════════════════════
+// ── Gravação de áudio ─────────────────────────────────────────────────────────
+async function toggleRecord() {
+  if (!isRecording) {
+    await startRecording();
+  } else {
+    await stopRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.start(100);
+    isRecording = true;
+
+    const btn = document.getElementById('btn-record');
+    const status = document.getElementById('audio-status');
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
+    if (status) status.style.display = 'inline-block';
+  } catch(e) {
+    alert('Permissão de microfone negada. Verifique as configurações do navegador.');
+  }
+}
+
+async function stopRecording() {
+  if (!mediaRecorder) return;
+  isRecording = false;
+
+  const btn = document.getElementById('btn-record');
+  const status = document.getElementById('audio-status');
+  if (btn) { btn.classList.remove('recording'); btn.textContent = '🎙️'; }
+  if (status) status.style.display = 'none';
+
+  return new Promise(resolve => {
+    mediaRecorder.onstop = async () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+      audioChunks = [];
+
+      // Para todas as tracks do stream
+      mediaRecorder.stream?.getTracks().forEach(t => t.stop());
+
+      if (blob.size > 0 && activePhone && convInstId) {
+        await sendAudio(blob);
+      }
+      resolve();
+    };
+    mediaRecorder.stop();
+  });
+}
+
+async function sendAudio(blob) {
+  try {
+    const formData = new FormData();
+    formData.append('audio', blob, 'audio.webm');
+    formData.append('phone', activePhone);
+
+    const res = await fetch('/api/messages/' + convInstId + '/send-audio', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await refreshMessages(activeContactId);
+  } catch(e) {
+    alert('Erro ao enviar áudio: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // Chatbot
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadBotTabs() {
   const insts = await api('/api/instances');
   const bar = document.getElementById('bot-tabs');
@@ -512,13 +740,13 @@ async function loadBotTabs() {
   bar.innerHTML = insts.map(i =>
     `<div class="tab ${botInstId==i.id?'active':''}" onclick="selectBotInst(${i.id},this)">${esc(i.name)}</div>`
   ).join('');
-  if (!botInstId) selectBotInst(insts[0].id, bar.firstChild);
+  if (!botInstId && insts.length) selectBotInst(insts[0].id, bar.firstChild);
 }
 
 async function selectBotInst(id, el) {
   botInstId = id;
   document.querySelectorAll('#bot-tabs .tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
   await loadFlows();
 }
 
@@ -556,8 +784,8 @@ async function loadFlows() {
       <strong>Como funciona o Chatbot:</strong><br>
       • O <strong>Gatilho</strong> é o texto exato que o cliente envia (sem diferenciar maiúsculas)<br>
       • Use <code>*</code> como gatilho curinga para responder qualquer mensagem não mapeada<br>
-      • A <strong>Próxima Etapa</strong> permite criar fluxos encadeados (ex: cliente responde "amor" → próximo fluxo só ativa nessa etapa)<br>
-      • Clientes com etapa <code>awaiting_question</code> recebem a leitura de Tarot com IA (requer <code>ANTHROPIC_API_KEY</code>)
+      • A <strong>Próxima Etapa</strong> permite criar fluxos encadeados<br>
+      • A IA (Lumina/Isis) responde automaticamente com personalidade mística 🔮
     </div>`;
 }
 
@@ -575,7 +803,6 @@ async function saveFlow() {
   const response   = document.getElementById('flow-response').value.trim();
   const next_stage = document.getElementById('flow-stage').value.trim();
   if (!trigger || !response) return alert('Preencha o gatilho e a resposta');
-
   if (editFlowId) {
     await api('/api/chatbot/flows/'+editFlowId, 'PUT', { trigger, response, next_stage, active: true });
   } else {
@@ -591,13 +818,17 @@ async function deleteFlow(id) {
   loadFlows();
 }
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 // Helpers
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
 async function api(path, method='GET', body=null) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
   if (body) opts.body = JSON.stringify(body);
-  try { return (await fetch(path, opts)).json(); } catch(e) { return {}; }
+  try {
+    const res = await fetch(path, opts);
+    if (res.status === 401) { window.location.href = '/login'; return {}; }
+    return res.json();
+  } catch(e) { return {}; }
 }
 
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -612,7 +843,7 @@ function esc(s) {
 }
 
 function statusLabel(s) {
-  return { connected:'Conectado', disconnected:'Desconectado', qr_ready:'Aguardando QR', connecting:'Conectando' }[s] || s;
+  return { connected:'Conectado ✅', disconnected:'Desconectado', qr_ready:'Aguardando QR 📱', connecting:'Conectando...' }[s] || s;
 }
 
 function fmtTime(iso) {

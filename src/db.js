@@ -83,6 +83,13 @@ export async function initDB() {
       status        VARCHAR(20) DEFAULT 'pending'
     );
 
+    -- Sessões WhatsApp (persistência entre deploys)
+    CREATE TABLE IF NOT EXISTS wa_sessions (
+      instance_id  INTEGER PRIMARY KEY REFERENCES wa_instances(id) ON DELETE CASCADE,
+      session_data JSONB NOT NULL,
+      updated_at   TIMESTAMPTZ DEFAULT NOW()
+    );
+
     -- Índices de performance
     CREATE INDEX IF NOT EXISTS idx_messages_contact   ON messages(contact_id, sent_at DESC);
     CREATE INDEX IF NOT EXISTS idx_contacts_phone     ON contacts(instance_id, phone);
