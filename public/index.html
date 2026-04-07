@@ -401,11 +401,19 @@ function instCard(i) {
 function startQRPoll(id) {
   if (qrPollers[id]) return;
   let attempts = 0;
-  const maxAttempts = 40; // 2 minutos (40 × 3s)
+  const maxAttempts = 80; // 4 minutos (80 × 3s) — tempo suficiente para reconexão automática
+  let lastQR = null;
+  let qrShownAt = null;
 
   qrPollers[id] = setInterval(async () => {
     attempts++;
-    const { qr, status } = await api('/api/instances/' + id + '/qr');
+    let data;
+    try {
+      data = await api('/api/instances/' + id + '/qr');
+    } catch(e) {
+      return; // ignora erros de rede temporários
+    }
+    const { qr, status } = data;
 
     const img         = document.getElementById('qr-' + id);
     const placeholder = document.getElementById('qr-placeholder-' + id);
@@ -418,11 +426,24 @@ function startQRPoll(id) {
     }
 
     if (qr && img) {
-      img.src = qr;
+      if (qr !== lastQR) {
+        img.src = qr;
+        lastQR = qr;
+        qrShownAt = Date.now();
+      }
       img.style.display = 'block';
       if (placeholder) placeholder.style.display = 'none';
-      const remaining = Math.max(0, maxAttempts - attempts) * 3;
-      if (countdown) countdown.textContent = `QR expira em ~${remaining}s`;
+      const elapsed = Math.floor((Date.now() - qrShownAt) / 1000);
+      const remaining = Math.max(0, 60 - elapsed);
+      if (countdown) countdown.textContent = remaining > 0 ? `QR expira em ~${remaining}s` : 'Aguardando novo QR...';
+    } else if (!qr && status !== 'connected') {
+      // Sem QR: mostra placeholder com mensagem de status
+      if (img) img.style.display = 'none';
+      if (placeholder) {
+        placeholder.style.display = 'flex';
+        const msg = status === 'connecting' ? 'Conectando...' : 'Aguardando QR Code...';
+        placeholder.innerHTML = `<span style="font-size:24px">⏳</span><span>${msg}</span>`;
+      }
     }
 
     // Conectou com sucesso
@@ -432,8 +453,8 @@ function startQRPoll(id) {
       return;
     }
 
-    // QR expirou ou erro
-    if (attempts >= maxAttempts || (!qr && status === 'disconnected' && attempts > 5)) {
+    // Para apenas quando atingir o máximo de tentativas
+    if (attempts >= maxAttempts) {
       stopQRPoller(id);
       await loadInstances();
       return;

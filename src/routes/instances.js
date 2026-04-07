@@ -1,6 +1,6 @@
 import { Router }    from 'express';
 import { db }        from '../db.js';
-import { waManager } from '../whatsapp.js';
+import { waManager, getDebugLogs } from '../whatsapp.js';
 
 const router = Router();
 
@@ -97,6 +97,16 @@ router.delete('/:id', async (req, res) => {
     await waManager.disconnect(parseInt(req.params.id));
     await db.query(`DELETE FROM wa_instances WHERE id=$1`, [req.params.id]);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Logs de debug ─────────────────────────────────────────────────────────────
+router.get('/debug/logs', (req, res) => {
+  try {
+    const logs = getDebugLogs();
+    res.json({ logs, count: logs.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

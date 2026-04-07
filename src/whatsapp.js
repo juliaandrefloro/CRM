@@ -2,7 +2,8 @@ import BaileysModule, {
   DisconnectReason,
   downloadMediaMessage,
   makeCacheableSignalKeyStore,
-  makeWASocket as makeWASocketNamed
+  makeWASocket as makeWASocketNamed,
+  fetchLatestBaileysVersion
 } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode';
 import { db } from './db.js';
@@ -17,10 +18,45 @@ const makeWASocket = makeWASocketNamed
   || BaileysModule?.default
   || BaileysModule;
 
-const logger = pino({ level: 'silent' });
+// Logger com nível warn para ver erros importantes mas não spam
+const logger = pino({ level: 'warn' });
 
-// ── Versão fixa do WhatsApp Web (evita timeout de fetchLatestBaileysVersion) ──
-const WA_VERSION = [2, 3000, 1015901307];
+// ── Buffer de logs para endpoint de debug ─────────────────────────────────────
+const LOG_BUFFER = [];
+const MAX_LOG_LINES = 200;
+
+function addLog(level, ...args) {
+  const line = `[${new Date().toISOString()}] [${level}] ${args.join(' ')}`;
+  LOG_BUFFER.push(line);
+  if (LOG_BUFFER.length > MAX_LOG_LINES) LOG_BUFFER.shift();
+  if (level === 'ERROR') {
+    console.error(line);
+  } else {
+    console.log(line);
+  }
+}
+
+export function getDebugLogs() {
+  return [...LOG_BUFFER];
+}
+
+// ── Versão do WhatsApp Web ────────────────────────────────────────────────────
+let WA_VERSION = [2, 3000, 1035194821]; // versão atualizada
+
+async function getWAVersion() {
+  try {
+    const { version, isLatest } = await Promise.race([
+      fetchLatestBaileysVersion(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ]);
+    addLog('INFO', `Versão WhatsApp: ${version} | Mais recente: ${isLatest}`);
+    WA_VERSION = version;
+    return version;
+  } catch (e) {
+    addLog('WARN', `fetchLatestBaileysVersion falhou (${e.message}), usando versão fixa: ${WA_VERSION}`);
+    return WA_VERSION;
+  }
+}
 
 // ─── Salva mensagem no banco ──────────────────────────────────────────────────
 async function saveMessage(instanceId, phone, role, content, agent = 'bot') {
@@ -42,7 +78,7 @@ async function saveMessage(instanceId, phone, role, content, agent = 'bot') {
       VALUES ($1, $2, $3, $4, $5)
     `, [instanceId, contactId, role, content, agent]);
   } catch (e) {
-    console.error('[SAVE MSG ERROR]', e.message);
+    addLog('ERROR', '[SAVE MSG]', e.message);
   }
 }
 
@@ -56,7 +92,7 @@ class WAManager {
     // Evita conexões duplicadas
     const existing = this.instances.get(instanceId);
     if (existing && (existing.status === 'connected' || existing.status === 'connecting')) {
-      console.log(`[CONNECT] Instância ${instanceId} já está ${existing.status}, ignorando`);
+      addLog('INFO', `[CONNECT] Instância ${instanceId} já está ${existing.status}, ignorando`);
       return existing.sock;
     }
 
@@ -65,7 +101,7 @@ class WAManager {
       clearTimeout(existing.reconnectTimer);
     }
 
-    console.log(`[CONNECT] Iniciando conexão para instância ${instanceId}`);
+    addLog('INFO', `[CONNECT] Iniciando conexão para instância ${instanceId}`);
 
     // Marca como conectando
     this.instances.set(instanceId, {
@@ -74,30 +110,37 @@ class WAManager {
 
     try {
       await db.query(`UPDATE wa_instances SET status='connecting' WHERE id=$1`, [instanceId]);
-    } catch (e) {}
+    } catch (e) {
+      addLog('WARN', `[CONNECT] Erro ao atualizar status no banco: ${e.message}`);
+    }
 
     // ── Carrega estado de auth do PostgreSQL ──────────────────────────────
     let state, saveCreds;
     try {
       ({ state, saveCreds } = await usePostgresAuthState(instanceId));
+      addLog('INFO', `[AUTH] Estado carregado para instância ${instanceId}`);
     } catch (e) {
-      console.error(`[CONNECT AUTH ERROR] instância ${instanceId}:`, e.message);
+      addLog('ERROR', `[AUTH] Erro ao carregar estado para instância ${instanceId}: ${e.message}`);
       this.instances.delete(instanceId);
       return null;
     }
+
+    // ── Obtém versão do WhatsApp ──────────────────────────────────────────
+    const version = await getWAVersion();
+    addLog('INFO', `[CONNECT] Usando versão WA: ${version}`);
 
     // ── Cria socket Baileys ───────────────────────────────────────────────
     let sock;
     try {
       sock = makeWASocket({
-        version: WA_VERSION,
+        version,
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         logger,
         browser: ['CRM Tarot', 'Chrome', '120.0.0'],
-        printQRInTerminal: false,
+        printQRInTerminal: true, // Imprime QR no terminal para debug
         connectTimeoutMs: 60_000,
         keepAliveIntervalMs: 30_000,
         retryRequestDelayMs: 3000,
@@ -105,8 +148,10 @@ class WAManager {
         syncFullHistory: true,
         getMessage: async () => undefined,
       });
+      addLog('INFO', `[CONNECT] Socket criado para instância ${instanceId}`);
     } catch (e) {
-      console.error(`[CONNECT SOCKET ERROR] instância ${instanceId}:`, e.message);
+      addLog('ERROR', `[CONNECT] Erro ao criar socket para instância ${instanceId}: ${e.message}`);
+      addLog('ERROR', `[CONNECT] Stack: ${e.stack}`);
       this.instances.delete(instanceId);
       return null;
     }
@@ -118,14 +163,18 @@ class WAManager {
     sock.ev.on('creds.update', async () => {
       try {
         await saveCreds();
+        addLog('INFO', `[CREDS] Credenciais salvas para instância ${instanceId}`);
       } catch (e) {
-        console.error('[CREDS UPDATE ERROR]', e.message);
+        addLog('ERROR', `[CREDS] Erro ao salvar: ${e.message}`);
       }
     });
 
     // ── Eventos de conexão ────────────────────────────────────────────────
-    sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
       const inst = this.instances.get(instanceId);
+
+      addLog('INFO', `[CONN UPDATE] inst=${instanceId} connection=${connection || 'null'} qr=${qr ? 'SIM' : 'NÃO'} statusCode=${lastDisconnect?.error?.output?.statusCode || 'N/A'}`);
 
       // QR Code gerado
       if (qr) {
@@ -137,9 +186,9 @@ class WAManager {
             inst.qrTimestamp = Date.now();
           }
           await db.query(`UPDATE wa_instances SET status='qr_ready' WHERE id=$1`, [instanceId]);
-          console.log(`📱 QR Code gerado para instância ${instanceId}`);
+          addLog('INFO', `📱 QR Code gerado para instância ${instanceId} (${qrDataUrl.length} bytes)`);
         } catch (e) {
-          console.error('[QR ERROR]', e.message);
+          addLog('ERROR', `[QR] Erro ao gerar QR: ${e.message}`);
         }
       }
 
@@ -157,8 +206,10 @@ class WAManager {
             `UPDATE wa_instances SET status='connected', phone=$1 WHERE id=$2`,
             [phone, instanceId]
           );
-        } catch (e) {}
-        console.log(`✅ Instância ${instanceId} conectada — ${phone}`);
+        } catch (e) {
+          addLog('WARN', `[CONN] Erro ao atualizar status connected: ${e.message}`);
+        }
+        addLog('INFO', `✅ Instância ${instanceId} conectada — ${phone}`);
       }
 
       // Desconectado
@@ -173,7 +224,7 @@ class WAManager {
         const isReplacedByAnotherDevice = statusCode === DisconnectReason.multideviceMismatch
                                        || statusCode === 440;
 
-        console.log(`⚠️ Instância ${instanceId} desconectada — código: ${statusCode}, motivo: ${reason}`);
+        addLog('WARN', `⚠️ Instância ${instanceId} desconectada — código: ${statusCode}, motivo: ${reason}`);
 
         if (inst) inst.status = 'disconnected';
         try {
@@ -182,13 +233,13 @@ class WAManager {
 
         if (isLoggedOut || isReplacedByAnotherDevice) {
           // Sessão inválida — limpa tudo e aguarda reconexão manual
-          console.log(`❌ Instância ${instanceId} deslogada permanentemente — limpando sessão`);
+          addLog('ERROR', `❌ Instância ${instanceId} deslogada permanentemente — limpando sessão`);
           this.instances.delete(instanceId);
           try { await deleteAuthState(instanceId); } catch (e) {}
         } else {
-          // Erro temporário — reconecta após delay crescente
-          const delay = 10_000; // 10 segundos
-          console.log(`🔄 Reconectando instância ${instanceId} em ${delay/1000}s...`);
+          // Erro temporário — reconecta após delay
+          const delay = 15_000; // 15 segundos
+          addLog('INFO', `🔄 Reconectando instância ${instanceId} em ${delay/1000}s...`);
           this.instances.delete(instanceId);
           const timer = setTimeout(() => this.connect(instanceId), delay);
           // Guarda referência para poder cancelar se necessário
@@ -242,7 +293,7 @@ class WAManager {
             try {
               await botEngine.handle(instanceId, sock, phone, text);
             } catch (e) {
-              console.error('[BOT TEXT ERROR]', e.message);
+              addLog('ERROR', `[BOT TEXT] ${e.message}`);
             }
           } else if (isAudio) {
             try {
@@ -255,7 +306,7 @@ class WAManager {
                             || 'audio/ogg; codecs=opus';
               await botEngine.handle(instanceId, sock, phone, '', audioBuffer, mimeType);
             } catch (e) {
-              console.error('[BOT AUDIO ERROR]', e.message);
+              addLog('ERROR', `[BOT AUDIO] ${e.message}`);
               try {
                 await this.sendText(instanceId, phone,
                   `🙏 Recebi seu áudio, mas tive dificuldade em processá-lo. Poderia escrever sua mensagem? Estou aqui para ajudar. 💜`
@@ -319,16 +370,16 @@ class WAManager {
 
   async reconnectAll() {
     try {
-      const { rows } = await db.query(`
-        SELECT id FROM wa_instances WHERE status != 'disconnected'
-      `);
+      // Reconecta TODAS as instâncias existentes (não só as não-desconectadas)
+      const { rows } = await db.query(`SELECT id FROM wa_instances ORDER BY id`);
+      addLog('INFO', `[RECONNECT ALL] ${rows.length} instância(s) encontrada(s)`);
       for (const row of rows) {
         const delay = 3000 + (row.id * 2000);
-        console.log(`🔄 Reconectando instância ${row.id} em ${delay/1000}s...`);
+        addLog('INFO', `🔄 Reconectando instância ${row.id} em ${delay/1000}s...`);
         setTimeout(() => this.connect(row.id), delay);
       }
     } catch (e) {
-      console.error('[RECONNECT ALL ERROR]', e.message);
+      addLog('ERROR', `[RECONNECT ALL] ${e.message}`);
     }
   }
 }
