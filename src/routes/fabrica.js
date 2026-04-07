@@ -88,7 +88,7 @@ router.post('/:instanceId/agentes', async (req, res) => {
       req.params.instanceId, slug, nome,
       avatar || '🤖', system_prompt || '',
       (api_key && api_key !== '***CONFIGURADA***') ? api_key : null,
-      model || 'claude-haiku-4-5', provider || 'anthropic',
+      model || 'claude-3-5-haiku-20241022', provider || 'anthropic',
       temperature || 0.70, max_tokens || 800,
       ativo !== false, ordem || 0
     ]);
@@ -149,17 +149,17 @@ router.post('/:instanceId/seed', async (req, res) => {
   const agentes = [
     {
       slug: 'saudacao', nome: 'Agente 1 — Saudação', avatar: '🌙',
-      model: 'claude-haiku-4-5', provider: 'anthropic', ordem: 1,
+      model: 'claude-3-5-haiku-20241022', provider: 'anthropic', ordem: 1,
       system_prompt: ''  // Usuário preenche pelo painel
     },
     {
       slug: 'pagamento', nome: 'Agente 2 — Pagamento', avatar: '💳',
-      model: 'claude-haiku-4-5', provider: 'anthropic', ordem: 2,
+      model: 'claude-3-5-haiku-20241022', provider: 'anthropic', ordem: 2,
       system_prompt: ''
     },
     {
       slug: 'entrega', nome: 'Agente 3 — Entrega', avatar: '🔮',
-      model: 'claude-opus-4-5', provider: 'anthropic', ordem: 3,
+      model: 'claude-3-5-sonnet-20241022', provider: 'anthropic', ordem: 3,
       system_prompt: ''
     },
   ];

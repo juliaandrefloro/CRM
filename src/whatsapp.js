@@ -8,7 +8,7 @@ import BaileysModule, {
 } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode';
 import { db } from './db.js';
-import { botEngine } from './bot-engine.js';
+import { agenteEngine } from './agente-engine.js';
 import { usePostgresAuthState, deleteAuthState } from './postgres-auth-state.js';
 import pino from 'pino';
 
@@ -383,7 +383,7 @@ class WAManager {
         if (type === 'notify' && !isFromMe) {
           if (text) {
             try {
-              await botEngine.handle(instanceId, sock, phone, text);
+              await agenteEngine.handle(instanceId, sock, phone, text);
             } catch (e) {
               addLog('ERROR', `[BOT TEXT] ${e.message}`);
             }
@@ -396,7 +396,7 @@ class WAManager {
               const mimeType = innerMsg.audioMessage?.mimetype
                             || innerMsg.pttMessage?.mimetype
                             || 'audio/ogg; codecs=opus';
-              await botEngine.handle(instanceId, sock, phone, '', audioBuffer, mimeType);
+              await agenteEngine.handle(instanceId, sock, phone, '', audioBuffer, mimeType);
             } catch (e) {
               addLog('ERROR', `[BOT AUDIO] ${e.message}`);
               try {
