@@ -152,5 +152,67 @@ export async function initDB() {
       WHERE status = 'pending';
   `);
 
-  console.log('✅ Banco de dados pronto (v3 — sistema de 3 agentes)');
+  // ── Migração v4 — Fábrica de Agentes Dinâmica ─────────────────────────────
+  await db.query(`
+    -- Tabela principal da Fábrica de Agentes (especificação do usuário)
+    -- slug é o identificador único: 'saudacao', 'pagamento', 'entrega'
+    CREATE TABLE IF NOT EXISTS agentes_config (
+      id              SERIAL PRIMARY KEY,
+      instance_id     INTEGER REFERENCES wa_instances(id) ON DELETE CASCADE,
+      slug            VARCHAR(40)  NOT NULL,
+      nome            VARCHAR(80)  NOT NULL,
+      avatar          VARCHAR(10)  DEFAULT '🤖',
+      system_prompt   TEXT         NOT NULL DEFAULT '',
+      api_key         TEXT,
+      model           VARCHAR(60)  DEFAULT 'claude-haiku-4-5',
+      provider        VARCHAR(20)  DEFAULT 'anthropic',
+      temperature     NUMERIC(3,2) DEFAULT 0.70,
+      max_tokens      INTEGER      DEFAULT 800,
+      ativo           BOOLEAN      DEFAULT TRUE,
+      ordem           INTEGER      DEFAULT 0,
+      created_at      TIMESTAMPTZ  DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ  DEFAULT NOW(),
+      UNIQUE(instance_id, slug)
+    );
+
+    -- Templates de mensagens de remarketing (editáveis pelo painel)
+    CREATE TABLE IF NOT EXISTS remarketing_templates (
+      id              SERIAL PRIMARY KEY,
+      instance_id     INTEGER REFERENCES wa_instances(id) ON DELETE CASCADE,
+      slug            VARCHAR(40)  NOT NULL,
+      nome            VARCHAR(80)  NOT NULL,
+      mensagem        TEXT         NOT NULL,
+      delay_minutos   INTEGER      DEFAULT 30,
+      ativo           BOOLEAN      DEFAULT TRUE,
+      ordem           INTEGER      DEFAULT 0,
+      created_at      TIMESTAMPTZ  DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ  DEFAULT NOW(),
+      UNIQUE(instance_id, slug)
+    );
+
+    -- Métricas de desempenho por agente (para dashboard em tempo real)
+    CREATE TABLE IF NOT EXISTS agent_performance (
+      id              SERIAL PRIMARY KEY,
+      agente_slug     VARCHAR(40)  NOT NULL,
+      instance_id     INTEGER REFERENCES wa_instances(id) ON DELETE CASCADE,
+      data            DATE         DEFAULT CURRENT_DATE,
+      mensagens_enviadas   INTEGER DEFAULT 0,
+      mensagens_recebidas  INTEGER DEFAULT 0,
+      conversoes      INTEGER DEFAULT 0,
+      tempo_medio_resposta NUMERIC(8,2) DEFAULT 0,
+      created_at      TIMESTAMPTZ  DEFAULT NOW(),
+      UNIQUE(agente_slug, instance_id, data)
+    );
+
+    -- status_atendimento: state machine do cliente ('saudacao','pagamento','entrega')
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS status_atendimento VARCHAR(20) DEFAULT 'saudacao';
+
+    -- Índices de performance
+    CREATE INDEX IF NOT EXISTS idx_agentes_config_instance ON agentes_config(instance_id, slug);
+    CREATE INDEX IF NOT EXISTS idx_remarketing_tpl_instance ON remarketing_templates(instance_id, ativo);
+    CREATE INDEX IF NOT EXISTS idx_agent_perf_date ON agent_performance(agente_slug, instance_id, data DESC);
+    CREATE INDEX IF NOT EXISTS idx_contacts_status_atend ON contacts(instance_id, status_atendimento);
+  `);
+
+  console.log('✅ Banco de dados pronto (v4 — Fábrica de Agentes Dinâmica)');
 }

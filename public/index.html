@@ -200,6 +200,35 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
 .modal-large { max-width: 700px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media(max-width:600px){ .form-row { grid-template-columns: 1fr; } }
+
+/* ── Fábrica v4 ── */
+.fabrica-agente-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+.fabrica-agente-card.slug-saudacao { border-left: 3px solid #3b82f6; }
+.fabrica-agente-card.slug-pagamento { border-left: 3px solid #22c55e; }
+.fabrica-agente-card.slug-entrega   { border-left: 3px solid #a78bfa; }
+.fabrica-slug-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 12px; font-size: 11px; font-weight: 700; letter-spacing: .4px; }
+.slug-saudacao-badge { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb44; }
+.slug-pagamento-badge { background: #1a3320; color: #86efac; border: 1px solid #16a34a44; }
+.slug-entrega-badge   { background: #3b1f5e; color: #c4b5fd; border: 1px solid #7c3aed44; }
+.fabrica-perf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.fabrica-perf-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 10px; padding: 14px; text-align: center; }
+.fabrica-perf-card .pval { font-size: 26px; font-weight: 700; color: #c9a8f0; }
+.fabrica-perf-card .plbl { font-size: 11px; color: #6b4fa0; margin-top: 3px; }
+.fabrica-funil-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.fabrica-funil-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 10px; padding: 14px; text-align: center; }
+.fabrica-funil-card .fval { font-size: 28px; font-weight: 700; color: #c9a8f0; }
+.fabrica-funil-card .flbl { font-size: 12px; color: #6b4fa0; margin-top: 3px; }
+.remarketing-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+.remarketing-card .rm-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.remarketing-card .rm-nome { font-size: 15px; font-weight: 600; color: #e2d9f3; }
+.remarketing-card .rm-delay { font-size: 12px; color: #f59e0b; background: #451a03; padding: 2px 8px; border-radius: 10px; }
+.remarketing-card .rm-msg { font-size: 13px; color: #9f8ab8; line-height: 1.6; white-space: pre-wrap; background: #0f0c1a; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.relatorio-section { background: #1a1428; border: 1px solid #2d2040; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.relatorio-section h3 { font-size: 14px; color: #c9a8f0; margin-bottom: 14px; font-weight: 600; }
+.relatorio-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.relatorio-kpi { background: #120e20; border: 1px solid #2d2040; border-radius: 8px; padding: 12px; text-align: center; }
+.relatorio-kpi .kval { font-size: 22px; font-weight: 700; color: #c9a8f0; }
+.relatorio-kpi .klbl { font-size: 11px; color: #6b4fa0; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -221,6 +250,9 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
   </div>
   <div class="nav-item" data-page="agents" onclick="navigate('agents',this)">
     <span class="nav-icon">✨</span> Fábrica de Agentes
+  </div>
+  <div class="nav-item" data-page="fabrica" onclick="navigate('fabrica',this)">
+    <span class="nav-icon">🏭</span> Fábrica v4
   </div>
   <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:10px;">
     <span>v2.0 · Tarot CRM</span>
@@ -274,6 +306,64 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
   <div class="page" id="page-chatbot">
     <div class="tab-bar" id="bot-tabs"></div>
     <div id="bot-content"></div>
+  </div>
+
+  <!-- ── Fábrica de Agentes v4 ── -->
+  <div class="page" id="page-fabrica">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <h2 style="font-size:18px;color:#c9a8f0;margin-bottom:4px">🏭 Fábrica de Agentes Dinâmica</h2>
+        <p style="font-size:13px;color:#6b4fa0">Gerencie os 3 agentes sem mexer em código. Tudo salvo no banco de dados.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="fabricaSeed()">&#9881; Criar Estrutura Padrão</button>
+        <button class="btn btn-primary" onclick="openFabricaAgentModal()">+ Novo Agente</button>
+      </div>
+    </div>
+    <!-- Sub-tabs -->
+    <div class="tab-bar" id="fabrica-tabs" style="margin-bottom:20px">
+      <div class="tab active" onclick="fabricaTab('agentes',this)">🤖 Agentes</div>
+      <div class="tab" onclick="fabricaTab('remarketing',this)">📣 Remarketing</div>
+      <div class="tab" onclick="fabricaTab('desempenho',this)">📊 Desempenho</div>
+      <div class="tab" onclick="fabricaTab('relatorio',this)">📋 Relatório Semanal</div>
+    </div>
+    <!-- Seletor de instância -->
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:13px;color:#6b4fa0">Instância:</span>
+      <select id="fabrica-inst-sel" onchange="fabricaInstChange()" style="background:#1a1230;border:1px solid #2d2040;color:#c9a8f0;padding:6px 10px;border-radius:6px;font-size:13px;width:auto"></select>
+    </div>
+    <!-- Conteúdo das tabs -->
+    <div id="fabrica-agentes-tab">
+      <div id="fabrica-agentes-content"><span style="color:#4c3575">Carregando...</span></div>
+    </div>
+    <div id="fabrica-remarketing-tab" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <h3 style="font-size:15px;color:#c9a8f0">📣 Templates de Remarketing</h3>
+          <p style="font-size:12px;color:#6b4fa0;margin-top:4px">Variáveis disponíveis: <code>{nome}</code> <code>{tiragem}</code> <code>{valor}</code></p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="fabricaRemarketingSeed()">&#9881; Templates Padrão</button>
+          <button class="btn btn-primary" onclick="openRemarketingModal()">+ Novo Template</button>
+        </div>
+      </div>
+      <div id="fabrica-remarketing-content"><span style="color:#4c3575">Carregando...</span></div>
+    </div>
+    <div id="fabrica-desempenho-tab" style="display:none">
+      <div id="fabrica-desempenho-content"><span style="color:#4c3575">Carregando...</span></div>
+    </div>
+    <div id="fabrica-relatorio-tab" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:13px;color:#6b4fa0">Período:</span>
+        <select id="relatorio-semanas" style="background:#1a1230;border:1px solid #2d2040;color:#c9a8f0;padding:6px 10px;border-radius:6px;font-size:13px;width:auto">
+          <option value="1">Última semana</option>
+          <option value="2">Últimas 2 semanas</option>
+          <option value="4">Último mês</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadRelatorio()">Gerar Relatório</button>
+      </div>
+      <div id="fabrica-relatorio-content"><span style="color:#4c3575">Selecione o período e clique em Gerar Relatório.</span></div>
+    </div>
   </div>
 
   <!-- ── Fábrica de Agentes ── -->
@@ -425,6 +515,91 @@ Ex: Você é Lumina, uma assistente mística acolhedora que atende clientes inte
   </div>
 </div>
 
+<!-- Modal: Fábrica v4 - Agente -->
+<div class="modal-bg" id="modal-fabrica-agent">
+  <div class="modal modal-large">
+    <h2 id="fabrica-agent-modal-title">🏭 Novo Agente</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Slug (identificador) *</label>
+        <select id="fa-slug">
+          <option value="saudacao">🌍 saudacao — Agente 1 (Saudação)</option>
+          <option value="pagamento">💳 pagamento — Agente 2 (Pagamento)</option>
+          <option value="entrega">🔮 entrega — Agente 3 (Entrega)</option>
+        </select>
+        <div class="form-hint">Define em qual etapa do fluxo este agente entra automaticamente</div>
+      </div>
+      <div class="form-group">
+        <label>Nome do Agente *</label>
+        <input type="text" id="fa-nome" placeholder="Ex: Lumina, Isis, Guardião...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Prompt de Sistema (Personalidade) *</label>
+      <textarea id="fa-prompt" rows="8" placeholder="Descreva a personalidade, tom de voz, regras e comportamento deste agente. Não escreva frases fixas aqui — apenas as instruções de como o agente deve se comportar..."></textarea>
+      <div class="form-hint">Este é o cérebro do agente. Quanto mais detalhado, melhor o comportamento. Você pode editar a qualquer momento.</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Modelo de IA</label>
+        <select id="fa-model">
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 (rápido — recomendado)</option>
+          <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (equilibrado)</option>
+          <option value="claude-opus-4-5">Claude Opus 4.5 (mais poderoso)</option>
+          <option value="gpt-4.1-mini">GPT-4.1 Mini (rápido)</option>
+          <option value="gpt-4.1">GPT-4.1 (equilibrado)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Temperature (0.0 — 1.0)</label>
+        <input type="number" id="fa-temp" value="0.7" min="0" max="1" step="0.1">
+        <div class="form-hint">0 = determinista | 1 = criativo</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Chave de API personalizada <span style="color:#4c3575;font-weight:400">(opcional)</span></label>
+      <input type="password" id="fa-apikey" placeholder="Deixe vazio para usar a chave do servidor (ANTHROPIC_API_KEY)">
+      <div class="form-hint">Se preenchida, este agente usará sua própria chave. Caso contrário, usa a do servidor.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-fabrica-agent')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFabricaAgent()">Salvar Agente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Fábrica v4 - Remarketing -->
+<div class="modal-bg" id="modal-remarketing">
+  <div class="modal modal-large">
+    <h2 id="remarketing-modal-title">📣 Novo Template de Remarketing</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome do Template *</label>
+        <input type="text" id="rm-nome" placeholder="Ex: Lembrete 30min, Reforço 1h...">
+      </div>
+      <div class="form-group">
+        <label>Delay (minutos após escolha) *</label>
+        <input type="number" id="rm-delay" value="30" min="1" max="1440">
+        <div class="form-hint">Após quantos minutos sem pagamento enviar esta mensagem</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Mensagem *</label>
+      <textarea id="rm-mensagem" rows="5" placeholder="Ex: Oi {nome}! 🌙 Vi que você escolheu a tiragem {tiragem} mas ainda não finalizou. Posso te ajudar?"></textarea>
+      <div class="form-hint">Use <code>{nome}</code>, <code>{tiragem}</code>, <code>{valor}</code> como variáveis dinâmicas</div>
+    </div>
+    <div class="form-group">
+      <label>Ordem de envio</label>
+      <input type="number" id="rm-ordem" value="1" min="1" max="10">
+      <div class="form-hint">Menor número = enviado primeiro</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-remarketing')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRemarketingTemplate()">Salvar Template</button>
+    </div>
+  </div>
+</div>
+
 <!-- Novo fluxo chatbot -->
 <div class="modal-bg" id="modal-flow">
   <div class="modal">
@@ -461,6 +636,9 @@ let activeContactId = null;
 let activePhone   = null;
 let botInstId     = null;
 let editFlowId    = null;
+let fabricaInstId = null;
+let editFabricaAgentSlug = null;
+let editRemarketingId = null;
 let mediaRecorder = null;
 let audioChunks   = [];
 let isRecording   = false;
@@ -483,7 +661,7 @@ function navigate(page, el) {
   if (el) el.classList.add('active');
 
   document.getElementById('topbar-title').textContent = {
-    dashboard: 'Dashboard', instances: 'WhatsApp', conversations: 'Conversas', chatbot: 'Chatbot', agents: 'Fábrica de Agentes'
+    dashboard: 'Dashboard', instances: 'WhatsApp', conversations: 'Conversas', chatbot: 'Chatbot', agents: 'Fábrica de Agentes', fabrica: 'Fábrica v4 — Dinâmica'
   }[page] || page;
 
   // Limpa pollers ao sair
@@ -496,6 +674,7 @@ function navigate(page, el) {
   if (page === 'conversations') loadConvTabs();
   if (page === 'chatbot')       loadBotTabs();
   if (page === 'agents')        loadAgentTabs();
+  if (page === 'fabrica')       loadFabrica();
 }
 
 // Inicializa navegação nos itens da sidebar
@@ -1343,6 +1522,351 @@ function fmtTime(iso) {
 function fmtFull(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FÁBRICA DE AGENTES v4 — Dinâmica
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadFabrica() {
+  // Carrega instâncias no seletor
+  const insts = await api('/api/instances');
+  const sel = document.getElementById('fabrica-inst-sel');
+  sel.innerHTML = insts.map(i => `<option value="${i.id}">${esc(i.name)}</option>`).join('');
+  if (!fabricaInstId && insts.length) fabricaInstId = insts[0].id;
+  if (fabricaInstId) sel.value = fabricaInstId;
+  // Carrega a tab ativa
+  await loadFabricaAgentes();
+}
+
+function fabricaInstChange() {
+  fabricaInstId = parseInt(document.getElementById('fabrica-inst-sel').value);
+  loadFabricaAgentes();
+}
+
+function fabricaTab(tab, el) {
+  document.querySelectorAll('#fabrica-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('fabrica-agentes-tab').style.display    = tab === 'agentes'     ? 'block' : 'none';
+  document.getElementById('fabrica-remarketing-tab').style.display = tab === 'remarketing'  ? 'block' : 'none';
+  document.getElementById('fabrica-desempenho-tab').style.display  = tab === 'desempenho'   ? 'block' : 'none';
+  document.getElementById('fabrica-relatorio-tab').style.display   = tab === 'relatorio'    ? 'block' : 'none';
+  if (tab === 'remarketing') loadFabricaRemarketing();
+  if (tab === 'desempenho')  loadFabricaDesempenho();
+}
+
+// ── Agentes ──
+async function loadFabricaAgentes() {
+  if (!fabricaInstId) return;
+  const box = document.getElementById('fabrica-agentes-content');
+  box.innerHTML = '<span style="color:#4c3575">Carregando...</span>';
+  const agentes = await api(`/api/fabrica/${fabricaInstId}/agentes`);
+  if (!agentes || agentes.error) {
+    box.innerHTML = `<div class="agent-empty"><div class="icon">🏭</div><p>Nenhum agente configurado ainda.</p><button class="btn btn-primary" onclick="fabricaSeed()">&#9881; Criar Estrutura Padrão</button></div>`;
+    return;
+  }
+  const slugInfo = {
+    saudacao: { label: '🌍 Agente 1 — Saudação e Triagem', desc: 'Recebe o cliente, verifica se é novo ou retornante, apresenta o menu de jogos.' },
+    pagamento: { label: '💳 Agente 2 — Pagamento e Vendas', desc: 'Envia o valor e o PIX. Dispara remarketing se não houver pagamento em 30 min.' },
+    entrega:   { label: '🔮 Agente 3 — Entrega do Jogo', desc: 'Realiza o sorteio das cartas e entrega a interpretação mística.' },
+  };
+  box.innerHTML = agentes.map(a => {
+    const info = slugInfo[a.slug] || { label: a.slug, desc: '' };
+    const slugClass = `slug-${a.slug}`;
+    const badgeClass = `slug-${a.slug}-badge`;
+    return `
+    <div class="fabrica-agente-card ${slugClass}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <span class="fabrica-slug-badge ${badgeClass}">${info.label}</span>
+            ${a.ativo ? '<span class="active-badge">✔ Ativo</span>' : ''}
+          </div>
+          <div style="font-size:17px;font-weight:700;color:#e2d9f3;margin-bottom:2px">${esc(a.nome)}</div>
+          <div style="font-size:12px;color:#6b4fa0">${esc(a.model)} · temp: ${a.temperature ?? 0.7}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-sm btn-outline" onclick="openFabricaAgentModal('${a.slug}')">✎ Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteFabricaAgent('${a.slug}')">Excluir</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#9f8ab8;margin-bottom:10px">${esc(info.desc)}</div>
+      <div style="background:#0f0c1a;border-radius:8px;padding:12px;font-size:13px;color:#9f8ab8;line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap">${esc(a.system_prompt || '(sem prompt configurado)')}</div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#6b4fa0;background:#120e20;padding:4px 10px;border-radius:6px;border:1px solid #2d2040">🤖 ${esc(a.model)}</span>
+        <span style="font-size:12px;color:#6b4fa0;background:#120e20;padding:4px 10px;border-radius:6px;border:1px solid #2d2040">🌡 temp: ${a.temperature ?? 0.7}</span>
+        ${a.api_key ? '<span style="font-size:12px;color:#86efac;background:#1a3320;padding:4px 10px;border-radius:6px;border:1px solid #16a34a44">🔑 API Key própria</span>' : '<span style="font-size:12px;color:#9f8ab8;background:#120e20;padding:4px 10px;border-radius:6px;border:1px solid #2d2040">🔑 API Key do servidor</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function fabricaSeed() {
+  if (!fabricaInstId) return alert('Selecione uma instância primeiro');
+  if (!confirm('Criar os 3 agentes padrão (Saudação, Pagamento, Entrega) para esta instância? Os prompts ficarão em branco para você preencher.')) return;
+  const r = await api(`/api/fabrica/${fabricaInstId}/seed`, 'POST');
+  if (r.error) return alert('Erro: ' + r.error);
+  alert('✅ Estrutura padrão criada! Agora edite os prompts de cada agente.');
+  await loadFabricaAgentes();
+}
+
+function openFabricaAgentModal(slug) {
+  editFabricaAgentSlug = slug || null;
+  document.getElementById('fabrica-agent-modal-title').textContent = slug ? '✎ Editar Agente' : '🏭 Novo Agente';
+  document.getElementById('fa-slug').value  = slug || 'saudacao';
+  document.getElementById('fa-nome').value  = '';
+  document.getElementById('fa-prompt').value = '';
+  document.getElementById('fa-model').value = 'claude-haiku-4-5';
+  document.getElementById('fa-temp').value  = '0.7';
+  document.getElementById('fa-apikey').value = '';
+  if (slug && fabricaInstId) {
+    api(`/api/fabrica/${fabricaInstId}/agentes/${slug}`).then(a => {
+      if (!a || a.error) return;
+      document.getElementById('fa-slug').value   = a.slug;
+      document.getElementById('fa-nome').value   = a.nome || '';
+      document.getElementById('fa-prompt').value = a.system_prompt || '';
+      document.getElementById('fa-model').value  = a.model || 'claude-haiku-4-5';
+      document.getElementById('fa-temp').value   = a.temperature ?? 0.7;
+    });
+  }
+  openModal('modal-fabrica-agent');
+}
+
+async function saveFabricaAgent() {
+  const slug   = document.getElementById('fa-slug').value;
+  const nome   = document.getElementById('fa-nome').value.trim();
+  const prompt = document.getElementById('fa-prompt').value.trim();
+  const model  = document.getElementById('fa-model').value;
+  const temp   = parseFloat(document.getElementById('fa-temp').value) || 0.7;
+  const apikey = document.getElementById('fa-apikey').value.trim() || null;
+  if (!nome)   return alert('O nome do agente é obrigatório');
+  if (!prompt) return alert('O Prompt de Sistema é obrigatório');
+  const payload = { slug, nome, system_prompt: prompt, model, temperature: temp };
+  if (apikey) payload.api_key = apikey;
+  const r = await api(`/api/fabrica/${fabricaInstId}/agentes`, 'POST', payload);
+  if (r.error) return alert('Erro ao salvar: ' + r.error);
+  closeModal('modal-fabrica-agent');
+  await loadFabricaAgentes();
+}
+
+async function deleteFabricaAgent(slug) {
+  if (!confirm(`Excluir o agente "${slug}"? Esta ação não pode ser desfeita.`)) return;
+  const r = await api(`/api/fabrica/${fabricaInstId}/agentes/${slug}`, 'DELETE');
+  if (r.error) return alert('Erro: ' + r.error);
+  await loadFabricaAgentes();
+}
+
+// ── Remarketing ──
+async function loadFabricaRemarketing() {
+  if (!fabricaInstId) return;
+  const box = document.getElementById('fabrica-remarketing-content');
+  box.innerHTML = '<span style="color:#4c3575">Carregando...</span>';
+  const templates = await api(`/api/fabrica/${fabricaInstId}/remarketing`);
+  if (!templates || templates.error || !templates.length) {
+    box.innerHTML = `<div class="agent-empty"><div class="icon">📣</div><p>Nenhum template de remarketing configurado.</p><button class="btn btn-primary" onclick="fabricaRemarketingSeed()">&#9881; Criar Templates Padrão</button></div>`;
+    return;
+  }
+  box.innerHTML = templates.map(t => `
+    <div class="remarketing-card">
+      <div class="rm-header">
+        <div>
+          <div class="rm-nome">${esc(t.nome)}</div>
+          <div style="font-size:12px;color:#6b4fa0;margin-top:2px">Ordem ${t.ordem} · Ativo: ${t.ativo ? '✅' : '❌'}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="rm-delay">⏰ ${t.delay_minutos} min</span>
+          <button class="btn btn-sm btn-outline" onclick="openRemarketingModal(${t.id})">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteRemarketingTemplate(${t.id})">Excluir</button>
+        </div>
+      </div>
+      <div class="rm-msg">${esc(t.mensagem)}</div>
+    </div>`).join('');
+}
+
+async function fabricaRemarketingSeed() {
+  if (!fabricaInstId) return alert('Selecione uma instância primeiro');
+  const r = await api(`/api/fabrica/${fabricaInstId}/remarketing/seed`, 'POST');
+  if (r.error) return alert('Erro: ' + r.error);
+  alert('✅ Templates padrão criados! Edite as mensagens como quiser.');
+  await loadFabricaRemarketing();
+}
+
+function openRemarketingModal(id) {
+  editRemarketingId = id || null;
+  document.getElementById('remarketing-modal-title').textContent = id ? '✎ Editar Template' : '📣 Novo Template de Remarketing';
+  document.getElementById('rm-nome').value     = '';
+  document.getElementById('rm-delay').value    = '30';
+  document.getElementById('rm-mensagem').value = '';
+  document.getElementById('rm-ordem').value    = '1';
+  if (id && fabricaInstId) {
+    api(`/api/fabrica/${fabricaInstId}/remarketing`).then(list => {
+      const t = (list || []).find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('rm-nome').value     = t.nome || '';
+      document.getElementById('rm-delay').value    = t.delay_minutos || 30;
+      document.getElementById('rm-mensagem').value = t.mensagem || '';
+      document.getElementById('rm-ordem').value    = t.ordem || 1;
+    });
+  }
+  openModal('modal-remarketing');
+}
+
+async function saveRemarketingTemplate() {
+  const nome     = document.getElementById('rm-nome').value.trim();
+  const delay    = parseInt(document.getElementById('rm-delay').value) || 30;
+  const mensagem = document.getElementById('rm-mensagem').value.trim();
+  const ordem    = parseInt(document.getElementById('rm-ordem').value) || 1;
+  if (!nome)     return alert('O nome do template é obrigatório');
+  if (!mensagem) return alert('A mensagem é obrigatória');
+  const payload = { nome, delay_minutos: delay, mensagem, ordem, ativo: true };
+  let r;
+  if (editRemarketingId) {
+    r = await api(`/api/fabrica/${fabricaInstId}/remarketing/${editRemarketingId}`, 'PUT', payload);
+  } else {
+    r = await api(`/api/fabrica/${fabricaInstId}/remarketing`, 'POST', payload);
+  }
+  if (r.error) return alert('Erro ao salvar: ' + r.error);
+  closeModal('modal-remarketing');
+  await loadFabricaRemarketing();
+}
+
+async function deleteRemarketingTemplate(id) {
+  if (!confirm('Excluir este template?')) return;
+  await api(`/api/fabrica/${fabricaInstId}/remarketing/${id}`, 'DELETE');
+  await loadFabricaRemarketing();
+}
+
+// ── Desempenho ──
+async function loadFabricaDesempenho() {
+  if (!fabricaInstId) return;
+  const box = document.getElementById('fabrica-desempenho-content');
+  box.innerHTML = '<span style="color:#4c3575">Carregando...</span>';
+  const d = await api(`/api/fabrica/${fabricaInstId}/desempenho`);
+  if (!d || d.error) {
+    box.innerHTML = '<span style="color:#4c3575">Erro ao carregar dados de desempenho.</span>';
+    return;
+  }
+  // Funil de estágios
+  const funilHtml = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:#9f8ab8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Funil de Clientes por Estágio</div>
+      <div class="fabrica-funil-grid">
+        <div class="fabrica-funil-card" style="border-left:3px solid #3b82f6">
+          <div class="fval">${d.funil?.saudacao ?? 0}</div>
+          <div class="flbl">🌍 Saudação</div>
+        </div>
+        <div class="fabrica-funil-card" style="border-left:3px solid #22c55e">
+          <div class="fval">${d.funil?.pagamento ?? 0}</div>
+          <div class="flbl">💳 Pagamento</div>
+        </div>
+        <div class="fabrica-funil-card" style="border-left:3px solid #a78bfa">
+          <div class="fval">${d.funil?.entrega ?? 0}</div>
+          <div class="flbl">🔮 Entrega</div>
+        </div>
+      </div>
+    </div>`;
+  // Desempenho por agente
+  const agentesHtml = d.agentes?.length ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:#9f8ab8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Desempenho por Agente (30 dias)</div>
+      ${d.agentes.map(a => {
+        const slugClass = `slug-${a.slug}-badge`;
+        return `
+        <div class="fabrica-agente-card slug-${a.slug}" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <span class="fabrica-slug-badge ${slugClass}">${a.slug}</span>
+              <span style="font-size:15px;font-weight:700;color:#e2d9f3;margin-left:10px">${esc(a.nome || a.slug)}</span>
+            </div>
+            <span style="font-size:12px;color:#6b4fa0">${a.model || ''}</span>
+          </div>
+          <div class="fabrica-perf-grid">
+            <div class="fabrica-perf-card"><div class="pval">${a.total_respostas ?? 0}</div><div class="plbl">Respostas</div></div>
+            <div class="fabrica-perf-card"><div class="pval">${a.total_contatos ?? 0}</div><div class="plbl">Contatos</div></div>
+            <div class="fabrica-perf-card"><div class="pval">${a.total_tokens ?? 0}</div><div class="plbl">Tokens</div></div>
+            <div class="fabrica-perf-card"><div class="pval">${a.ultimo_uso ? fmtTime(a.ultimo_uso) : '–'}</div><div class="plbl">Último Uso</div></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '<div style="color:#4c3575;font-size:13px">Nenhum dado de desempenho ainda. Os dados aparecerão após as primeiras interações.</div>';
+  // Mensagens recentes
+  const msgHtml = `
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#9f8ab8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Mensagens</div>
+      <div class="fabrica-perf-grid">
+        <div class="fabrica-perf-card"><div class="pval">${d.mensagens?.hoje ?? 0}</div><div class="plbl">Hoje</div></div>
+        <div class="fabrica-perf-card"><div class="pval">${d.mensagens?.semana ?? 0}</div><div class="plbl">Esta Semana</div></div>
+        <div class="fabrica-perf-card"><div class="pval">${d.mensagens?.mes ?? 0}</div><div class="plbl">Este Mês</div></div>
+        <div class="fabrica-perf-card"><div class="pval">${d.mensagens?.total ?? 0}</div><div class="plbl">Total</div></div>
+      </div>
+    </div>`;
+  box.innerHTML = funilHtml + agentesHtml + msgHtml;
+}
+
+// ── Relatório Semanal ──
+async function loadRelatorio() {
+  if (!fabricaInstId) return alert('Selecione uma instância primeiro');
+  const semanas = document.getElementById('relatorio-semanas').value;
+  const box = document.getElementById('fabrica-relatorio-content');
+  box.innerHTML = '<span style="color:#4c3575">Gerando relatório...</span>';
+  const r = await api(`/api/fabrica/${fabricaInstId}/relatorio?semanas=${semanas}`);
+  if (!r || r.error) {
+    box.innerHTML = '<span style="color:#fca5a5">Erro ao gerar relatório.</span>';
+    return;
+  }
+  const periodoLabel = { '1': 'Última semana', '2': 'Últimas 2 semanas', '4': 'Último mês' }[semanas] || `${semanas} semanas`;
+  box.innerHTML = `
+    <div class="relatorio-section">
+      <h3>📊 Resumo Geral — ${periodoLabel}</h3>
+      <div class="relatorio-kpi-grid">
+        <div class="relatorio-kpi"><div class="kval">${r.resumo?.novos_contatos ?? 0}</div><div class="klbl">Novos Contatos</div></div>
+        <div class="relatorio-kpi"><div class="kval">${r.resumo?.total_mensagens ?? 0}</div><div class="klbl">Mensagens</div></div>
+        <div class="relatorio-kpi"><div class="kval">${r.resumo?.total_leituras ?? 0}</div><div class="klbl">Leituras</div></div>
+        <div class="relatorio-kpi"><div class="kval">R$ ${parseFloat(r.resumo?.faturamento ?? 0).toFixed(2).replace('.', ',')}</div><div class="klbl">Faturamento</div></div>
+        <div class="relatorio-kpi"><div class="kval">${r.resumo?.taxa_conversao ?? '0'}%</div><div class="klbl">Taxa de Conversão</div></div>
+      </div>
+    </div>
+    <div class="relatorio-section">
+      <h3>🤖 Desempenho por Agente</h3>
+      ${r.agentes?.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Agente</th><th>Slug</th><th>Respostas</th><th>Contatos</th><th>Tokens</th><th>Último Uso</th>
+            </tr></thead>
+            <tbody>
+              ${r.agentes.map(a => `
+                <tr>
+                  <td>${esc(a.nome || a.slug)}</td>
+                  <td><span class="fabrica-slug-badge slug-${a.slug}-badge">${a.slug}</span></td>
+                  <td>${a.total_respostas ?? 0}</td>
+                  <td>${a.total_contatos ?? 0}</td>
+                  <td>${a.total_tokens ?? 0}</td>
+                  <td style="font-size:12px;color:#9f8ab8">${a.ultimo_uso ? fmtFull(a.ultimo_uso) : '–'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : '<span style="color:#4c3575">Nenhum dado de agentes ainda.</span>'}
+    </div>
+    <div class="relatorio-section">
+      <h3>📉 Funil de Conversão</h3>
+      <div class="fabrica-funil-grid">
+        <div class="fabrica-funil-card" style="border-left:3px solid #3b82f6">
+          <div class="fval">${r.funil?.saudacao ?? 0}</div>
+          <div class="flbl">🌍 Saudação</div>
+        </div>
+        <div class="fabrica-funil-card" style="border-left:3px solid #22c55e">
+          <div class="fval">${r.funil?.pagamento ?? 0}</div>
+          <div class="flbl">💳 Pagamento</div>
+        </div>
+        <div class="fabrica-funil-card" style="border-left:3px solid #a78bfa">
+          <div class="fval">${r.funil?.entrega ?? 0}</div>
+          <div class="flbl">🔮 Entrega</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:#4c3575">Relatório gerado em ${new Date().toLocaleString('pt-BR')} · Período: ${periodoLabel}</div>
+  `;
 }
 
 // Init

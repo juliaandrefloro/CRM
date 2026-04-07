@@ -11,9 +11,11 @@ import messagesRouter  from './src/routes/messages.js';
 import dashboardRouter from './src/routes/dashboard.js';
 import webhookRouter   from './src/routes/webhook.js';
 import agentsRouter    from './src/routes/agents.js';
+import fabricaRouter   from './src/routes/fabrica.js';
 import { initDB, db }  from './src/db.js';
 import { waManager }   from './src/whatsapp.js';
 import { botEngine }   from './src/bot-engine.js';
+import { agenteEngine } from './src/agente-engine.js';
 import { requireAuth, loginHandler, logoutHandler } from './src/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -70,6 +72,7 @@ app.use('/api/messages',  messagesRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/webhook',   webhookRouter);
 app.use('/api/agents',    agentsRouter);
+app.use('/api/fabrica',   fabricaRouter);
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
 await initDB();
@@ -92,6 +95,7 @@ setInterval(async () => {
     );
     for (const inst of instances) {
       await botEngine.processRemarketingJobs(inst.id);
+      await agenteEngine.processRemarketingJobs(inst.id);
     }
   } catch(e) {
     console.error('[REMARKETING CRON ERROR]', e.message);
