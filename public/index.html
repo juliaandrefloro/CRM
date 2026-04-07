@@ -159,7 +159,10 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
   <div class="nav-item" data-page="chatbot">
     <span class="nav-icon">🤖</span> Chatbot
   </div>
-  <div class="sidebar-footer">v1.0 · Tarot CRM</div>
+  <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:10px;">
+    <span>v1.0 · Tarot CRM</span>
+    <a href="/api/auth/logout" style="color:#6b4fa0;font-size:12px;text-decoration:none;display:flex;align-items:center;gap:6px;" onmouseover="this.style.color='#c9a8f0'" onmouseout="this.style.color='#6b4fa0'">🚪 Sair do painel</a>
+  </div>
 </div>
 
 <!-- ═══ Main ═══ -->
