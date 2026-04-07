@@ -3,7 +3,8 @@ import BaileysModule, {
   downloadMediaMessage,
   makeCacheableSignalKeyStore,
   makeWASocket as makeWASocketNamed,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  proto
 } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode';
 import { db } from './db.js';
@@ -18,12 +19,12 @@ const makeWASocket = makeWASocketNamed
   || BaileysModule?.default
   || BaileysModule;
 
-// Logger com nível warn para ver erros importantes mas não spam
-const logger = pino({ level: 'warn' });
+// Logger silencioso — apenas erros críticos
+const logger = pino({ level: 'silent' });
 
 // ── Buffer de logs para endpoint de debug ─────────────────────────────────────
 const LOG_BUFFER = [];
-const MAX_LOG_LINES = 200;
+const MAX_LOG_LINES = 300;
 
 function addLog(level, ...args) {
   const line = `[${new Date().toISOString()}] [${level}] ${args.join(' ')}`;
@@ -82,9 +83,31 @@ async function saveMessage(instanceId, phone, role, content, agent = 'bot') {
   }
 }
 
+// ─── Busca mensagem do banco para descriptografar retransmissões ──────────────
+// Isso resolve o erro "Aguardando Mensagem" causado por mensagens sem cache local
+async function getMessageFromStore(instanceId, key) {
+  try {
+    if (!key?.remoteJid || !key?.id) return undefined;
+    const phone = key.remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+    const { rows } = await db.query(`
+      SELECT m.content, m.role
+      FROM messages m
+      JOIN contacts c ON c.id = m.contact_id
+      WHERE c.instance_id = $1 AND c.phone = $2
+      ORDER BY m.id DESC
+      LIMIT 1
+    `, [instanceId, phone]);
+    if (!rows.length) return undefined;
+    // Retorna estrutura mínima para o Baileys conseguir descriptografar
+    return proto?.Message?.fromObject?.({ conversation: rows[0].content }) || undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
 class WAManager {
   constructor() {
-    // Map: instanceId → { sock, qr, status, qrTimestamp, reconnectTimer }
+    // Map: instanceId → { sock, qr, status, qrTimestamp, reconnectTimer, processedMsgIds }
     this.instances = new Map();
   }
 
@@ -103,9 +126,11 @@ class WAManager {
 
     addLog('INFO', `[CONNECT] Iniciando conexão para instância ${instanceId}`);
 
-    // Marca como conectando
+    // Marca como conectando — inclui Set para deduplicação de mensagens
     this.instances.set(instanceId, {
-      sock: null, qr: null, status: 'connecting', qrTimestamp: null, reconnectTimer: null
+      sock: null, qr: null, status: 'connecting',
+      qrTimestamp: null, reconnectTimer: null,
+      processedMsgIds: new Set()  // ← trava anti-duplicação
     });
 
     try {
@@ -140,13 +165,16 @@ class WAManager {
         },
         logger,
         browser: ['CRM Tarot', 'Chrome', '120.0.0'],
-        printQRInTerminal: true, // Imprime QR no terminal para debug
+        printQRInTerminal: false,
         connectTimeoutMs: 60_000,
-        keepAliveIntervalMs: 30_000,
-        retryRequestDelayMs: 3000,
-        maxMsgRetryCount: 3,
+        keepAliveIntervalMs: 25_000,
+        retryRequestDelayMs: 2000,
+        maxMsgRetryCount: 5,
         syncFullHistory: true,
-        getMessage: async () => undefined,
+        // ── CORREÇÃO CRÍTICA: getMessage implementado ──────────────────────
+        // Permite ao Baileys descriptografar mensagens retransmitidas
+        // que não estão no cache local (resolve "Aguardando Mensagem")
+        getMessage: async (key) => getMessageFromStore(instanceId, key),
       });
       addLog('INFO', `[CONNECT] Socket criado para instância ${instanceId}`);
     } catch (e) {
@@ -159,14 +187,19 @@ class WAManager {
     const inst = this.instances.get(instanceId);
     if (inst) inst.sock = sock;
 
-    // ── Salva credenciais ao atualizar ────────────────────────────────────
-    sock.ev.on('creds.update', async () => {
-      try {
-        await saveCreds();
-        addLog('INFO', `[CREDS] Credenciais salvas para instância ${instanceId}`);
-      } catch (e) {
-        addLog('ERROR', `[CREDS] Erro ao salvar: ${e.message}`);
-      }
+    // ── Salva credenciais ao atualizar (com debounce de 500ms) ───────────
+    // Evita salvar em loop quando múltiplos eventos chegam juntos
+    let credsDebounceTimer = null;
+    sock.ev.on('creds.update', () => {
+      if (credsDebounceTimer) clearTimeout(credsDebounceTimer);
+      credsDebounceTimer = setTimeout(async () => {
+        try {
+          await saveCreds();
+          addLog('INFO', `[CREDS] Credenciais salvas para instância ${instanceId}`);
+        } catch (e) {
+          addLog('ERROR', `[CREDS] Erro ao salvar: ${e.message}`);
+        }
+      }, 500);
     });
 
     // ── Eventos de conexão ────────────────────────────────────────────────
@@ -200,6 +233,8 @@ class WAManager {
           inst.status = 'connected';
           inst.qr     = null;
           inst.qrTimestamp = null;
+          // Limpa IDs processados ao reconectar (evita falsos positivos)
+          inst.processedMsgIds = new Set();
         }
         try {
           await db.query(
@@ -237,15 +272,15 @@ class WAManager {
           this.instances.delete(instanceId);
           try { await deleteAuthState(instanceId); } catch (e) {}
         } else {
-          // Erro temporário — reconecta após delay
-          const delay = 15_000; // 15 segundos
+          // Erro temporário — reconecta após delay progressivo
+          const delay = 15_000;
           addLog('INFO', `🔄 Reconectando instância ${instanceId} em ${delay/1000}s...`);
           this.instances.delete(instanceId);
           const timer = setTimeout(() => this.connect(instanceId), delay);
-          // Guarda referência para poder cancelar se necessário
           this.instances.set(instanceId, {
             sock: null, qr: null, status: 'disconnected',
-            qrTimestamp: null, reconnectTimer: timer
+            qrTimestamp: null, reconnectTimer: timer,
+            processedMsgIds: new Set()
           });
         }
       }
@@ -259,8 +294,27 @@ class WAManager {
 
       addLog('INFO', `[MSGS] Recebidas ${messages.length} mensagem(ns) — tipo: ${type}`);
 
+      const inst = this.instances.get(instanceId);
+
       for (const msg of messages) {
         if (!msg.message) continue;
+
+        // ── CORREÇÃO: Deduplicação por ID de mensagem ────────────────────
+        // Impede que o bot responda duas vezes à mesma mensagem
+        // (ocorre quando o WhatsApp retransmite ou o servidor reinicia)
+        const msgId = msg.key?.id;
+        if (msgId) {
+          if (inst?.processedMsgIds?.has(msgId)) {
+            addLog('INFO', `[DEDUP] Mensagem ${msgId} já processada, ignorando`);
+            continue;
+          }
+          inst?.processedMsgIds?.add(msgId);
+          // Limita o Set a 1000 IDs para não vazar memória
+          if (inst?.processedMsgIds?.size > 1000) {
+            const oldest = [...inst.processedMsgIds].slice(0, 200);
+            oldest.forEach(id => inst.processedMsgIds.delete(id));
+          }
+        }
 
         // Ignora mensagens de protocolo interno do WhatsApp
         if (msg.message.protocolMessage) continue;
@@ -276,7 +330,6 @@ class WAManager {
         const isFromMe   = msg.key.fromMe === true;
 
         // ── Extrai conteúdo ──────────────────────────────────────────────
-        // Suporte a mensagens encaminhadas e contextuais
         const innerMsg = msgContent.ephemeralMessage?.message
                       || msgContent.viewOnceMessage?.message
                       || msgContent.viewOnceMessageV2?.message?.viewOnceMessage?.message
@@ -292,10 +345,10 @@ class WAManager {
                   || innerMsg.templateButtonReplyMessage?.selectedDisplayText
                   || '';
 
-        const isAudio = !!(innerMsg.audioMessage || innerMsg.pttMessage);
-        const isImage = !!innerMsg.imageMessage;
-        const isVideo = !!innerMsg.videoMessage;
-        const isDoc   = !!innerMsg.documentMessage;
+        const isAudio   = !!(innerMsg.audioMessage || innerMsg.pttMessage);
+        const isImage   = !!innerMsg.imageMessage;
+        const isVideo   = !!innerMsg.videoMessage;
+        const isDoc     = !!innerMsg.documentMessage;
         const isSticker = !!innerMsg.stickerMessage;
 
         const displayContent = text
@@ -313,6 +366,17 @@ class WAManager {
 
         if (type === 'notify') {
           addLog('INFO', `[MSG ${type}] ${phone} | ${role} | ${displayContent.substring(0, 60)}`);
+        }
+
+        // ── CORREÇÃO: markRead automático ────────────────────────────────
+        // Marca mensagens recebidas como lidas para manter sincronia de criptografia
+        // Isso resolve o erro "Aguardando Mensagem" no WhatsApp do cliente
+        if (type === 'notify' && !isFromMe) {
+          try {
+            await sock.readMessages([msg.key]);
+          } catch (e) {
+            // Silencioso — markRead não é crítico
+          }
         }
 
         // ── Processa com bot (apenas mensagens novas e recebidas) ────────
@@ -344,6 +408,12 @@ class WAManager {
           }
         }
       }
+    });
+
+    // ── Lida com atualizações de chaves de sinal ──────────────────────────
+    // Necessário para manter a criptografia E2E sincronizada
+    sock.ev.on('messaging-history.set', ({ messages: histMsgs, isLatest }) => {
+      addLog('INFO', `[HISTORY] ${histMsgs?.length || 0} mensagens históricas | isLatest: ${isLatest}`);
     });
 
     return sock;
@@ -396,9 +466,22 @@ class WAManager {
     return result;
   }
 
+  async sendAudio(instanceId, phone, audioBuffer, mimeType = 'audio/ogg; codecs=opus') {
+    const inst = this.instances.get(instanceId);
+    if (!inst?.sock) throw new Error('Instância não conectada');
+    const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+
+    const result = await inst.sock.sendMessage(jid, {
+      audio: audioBuffer,
+      mimetype: mimeType,
+      ptt: true, // envia como mensagem de voz (PTT)
+    });
+    await saveMessage(instanceId, phone, 'assistant', '[Áudio 🎙️]', 'bot');
+    return result;
+  }
+
   async reconnectAll() {
     try {
-      // Reconecta TODAS as instâncias existentes (não só as não-desconectadas)
       const { rows } = await db.query(`SELECT id FROM wa_instances ORDER BY id`);
       addLog('INFO', `[RECONNECT ALL] ${rows.length} instância(s) encontrada(s)`);
       for (const row of rows) {

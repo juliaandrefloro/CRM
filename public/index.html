@@ -143,6 +143,37 @@ tr:hover td { background: #1a1428; }
 .chat-input input { flex: 1; }
 .audio-status { font-size: 12px; color: #f59e0b; padding: 4px 8px; background: #451a03; border-radius: 6px; display: none; }
 
+/* ── Painel de Controles de Áudio ── */
+.audio-controls-panel {
+  display: none;
+  position: absolute;
+  bottom: 70px;
+  left: 0; right: 0;
+  background: #1a1428;
+  border-top: 1px solid #3d2d5a;
+  border-bottom: 1px solid #3d2d5a;
+  padding: 10px 16px;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  animation: slideUp 0.2s ease;
+}
+.audio-controls-panel.visible { display: flex; }
+@keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.audio-rec-timer { font-size: 13px; font-weight: 600; color: #f59e0b; min-width: 48px; font-variant-numeric: tabular-nums; }
+.audio-rec-dot { width: 8px; height: 8px; background: #dc2626; border-radius: 50%; animation: pulse-rec 1s infinite; flex-shrink: 0; }
+.audio-rec-dot.paused { background: #f59e0b; animation: none; }
+.audio-waveform { flex: 1; height: 28px; background: #0f0c1a; border-radius: 6px; overflow: hidden; display: flex; align-items: center; padding: 0 6px; gap: 2px; }
+.audio-waveform .bar { width: 3px; background: #7c3aed; border-radius: 2px; transition: height 0.1s; min-height: 3px; }
+.audio-preview { flex: 1; height: 28px; display: none; }
+.audio-preview.visible { display: block; }
+.btn-audio-ctrl { background: transparent; border: 1px solid #3d2d5a; color: #c9a8f0; border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn-audio-ctrl:hover { background: #2d2040; }
+.btn-audio-ctrl.danger { border-color: #7f1d1d; color: #fca5a5; }
+.btn-audio-ctrl.danger:hover { background: #450a0a; }
+.btn-audio-ctrl.success { border-color: #14532d; color: #86efac; }
+.btn-audio-ctrl.success:hover { background: #052e16; }
+
 /* ── Info panel ── */
 .info-tip { background: #120e20; border: 1px solid #2d2040; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #9f8ab8; line-height: 1.7; }
 .info-tip strong { color: #c9a8f0; }
@@ -984,11 +1015,24 @@ async function renderMessages(contactId, name, phone) {
     <div class="chat-messages" id="chat-msgs">
       ${msgs.map(m => renderMsg(m)).join('')}
     </div>
-    <div class="chat-input">
-      <input type="text" id="manual-input" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendManual()">
-      <button class="btn btn-primary btn-sm" onclick="sendManual()">Enviar</button>
-      <button class="btn btn-record" id="btn-record" onclick="toggleRecord()" title="Gravar áudio">🎙️</button>
-      <span class="audio-status" id="audio-status">⏺ Gravando...</span>
+    <div class="chat-input-wrapper" style="position:relative;">
+      <div class="audio-controls-panel" id="audio-panel">
+        <span class="audio-rec-dot" id="audio-rec-dot"></span>
+        <span class="audio-rec-timer" id="audio-timer">0:00</span>
+        <div class="audio-waveform" id="audio-waveform">
+          ${Array.from({length:20},()=>'<div class="bar" style="height:4px"></div>').join('')}
+        </div>
+        <audio class="audio-preview" id="audio-preview" controls></audio>
+        <button class="btn-audio-ctrl" id="btn-pause-resume" onclick="togglePauseAudio()" title="Pausar/Retomar">⏸ Pausar</button>
+        <button class="btn-audio-ctrl" id="btn-listen" onclick="listenAudio()" title="Ouvir antes de enviar" style="display:none">▶ Ouvir</button>
+        <button class="btn-audio-ctrl danger" onclick="cancelAudio()" title="Descartar e gravar de novo">🗑 Excluir</button>
+        <button class="btn-audio-ctrl success" id="btn-send-audio" onclick="confirmSendAudio()" title="Enviar áudio" style="display:none">✉ Enviar</button>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="manual-input" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendManual()">
+        <button class="btn btn-primary btn-sm" onclick="sendManual()">Enviar</button>
+        <button class="btn btn-record" id="btn-record" onclick="toggleRecord()" title="Gravar áudio">🎤️</button>
+      </div>
     </div>`;
 
   scrollToBottom();
@@ -1038,12 +1082,125 @@ async function sendManual() {
   }
 }
 
-// ── Gravação de áudio ─────────────────────────────────────────────────────────
+// ── Gravação de Áudio Avançada ────────────────────────────────────────────────
+// Estados: idle | recording | paused | preview
+let audioState = 'idle';
+let audioTimerInterval = null;
+let audioSeconds = 0;
+let audioAnalyser = null;
+let audioAnimFrame = null;
+let audioBlob = null; // blob final para envio
+
+function getAudioPanel()   { return document.getElementById('audio-panel'); }
+function getAudioDot()     { return document.getElementById('audio-rec-dot'); }
+function getAudioTimer()   { return document.getElementById('audio-timer'); }
+function getAudioWave()    { return document.getElementById('audio-waveform'); }
+function getAudioPreview() { return document.getElementById('audio-preview'); }
+
+// Formata segundos em M:SS
+function formatAudioTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+// Inicia o contador de tempo
+function startAudioTimer() {
+  audioSeconds = 0;
+  const timerEl = getAudioTimer();
+  if (timerEl) timerEl.textContent = '0:00';
+  audioTimerInterval = setInterval(() => {
+    audioSeconds++;
+    if (timerEl) timerEl.textContent = formatAudioTime(audioSeconds);
+  }, 1000);
+}
+
+function stopAudioTimer() {
+  if (audioTimerInterval) { clearInterval(audioTimerInterval); audioTimerInterval = null; }
+}
+
+// Animação de forma de onda usando AnalyserNode
+function startWaveform(stream) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    audioAnalyser = ctx.createAnalyser();
+    audioAnalyser.fftSize = 64;
+    src.connect(audioAnalyser);
+    const bars = getAudioWave()?.querySelectorAll('.bar') || [];
+    const data = new Uint8Array(audioAnalyser.frequencyBinCount);
+    function draw() {
+      if (audioState !== 'recording') return;
+      audioAnalyser.getByteFrequencyData(data);
+      bars.forEach((bar, i) => {
+        const v = (data[i] || 0) / 255;
+        bar.style.height = Math.max(3, Math.round(v * 24)) + 'px';
+      });
+      audioAnimFrame = requestAnimationFrame(draw);
+    }
+    draw();
+  } catch(e) {}
+}
+
+function stopWaveform() {
+  if (audioAnimFrame) { cancelAnimationFrame(audioAnimFrame); audioAnimFrame = null; }
+  const bars = getAudioWave()?.querySelectorAll('.bar') || [];
+  bars.forEach(b => b.style.height = '4px');
+}
+
+// Mostra/esconde o painel de controles
+function showAudioPanel(show) {
+  const panel = getAudioPanel();
+  const btn   = document.getElementById('btn-record');
+  if (!panel) return;
+  if (show) {
+    panel.classList.add('visible');
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
+  } else {
+    panel.classList.remove('visible');
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
+  }
+}
+
+// Atualiza botões conforme o estado
+function updateAudioButtons() {
+  const dot       = getAudioDot();
+  const btnPause  = document.getElementById('btn-pause-resume');
+  const btnListen = document.getElementById('btn-listen');
+  const btnSend   = document.getElementById('btn-send-audio');
+  const wave      = getAudioWave();
+  const preview   = getAudioPreview();
+
+  if (audioState === 'recording') {
+    if (dot)      { dot.className = 'audio-rec-dot'; }
+    if (btnPause) { btnPause.style.display = ''; btnPause.textContent = '⏸ Pausar'; }
+    if (btnListen){ btnListen.style.display = 'none'; }
+    if (btnSend)  { btnSend.style.display = 'none'; }
+    if (wave)     { wave.style.display = 'flex'; }
+    if (preview)  { preview.classList.remove('visible'); preview.src = ''; }
+  } else if (audioState === 'paused') {
+    if (dot)      { dot.className = 'audio-rec-dot paused'; }
+    if (btnPause) { btnPause.style.display = ''; btnPause.textContent = '● Retomar'; }
+    if (btnListen){ btnListen.style.display = ''; }
+    if (btnSend)  { btnSend.style.display = ''; }
+    if (wave)     { wave.style.display = 'flex'; }
+    if (preview)  { preview.classList.remove('visible'); }
+  } else if (audioState === 'preview') {
+    if (dot)      { dot.className = 'audio-rec-dot paused'; }
+    if (btnPause) { btnPause.style.display = 'none'; }
+    if (btnListen){ btnListen.style.display = 'none'; }
+    if (btnSend)  { btnSend.style.display = ''; }
+    if (wave)     { wave.style.display = 'none'; }
+    if (preview)  { preview.classList.add('visible'); }
+  }
+}
+
+// Botão principal: inicia a gravação
 async function toggleRecord() {
-  if (!isRecording) {
+  if (audioState === 'idle') {
     await startRecording();
   } else {
-    await stopRecording();
+    await stopToPreview();
   }
 }
 
@@ -1051,62 +1208,139 @@ async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start(100);
     isRecording = true;
-
-    const btn = document.getElementById('btn-record');
-    const status = document.getElementById('audio-status');
-    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹️'; }
-    if (status) status.style.display = 'inline-block';
+    audioState = 'recording';
+    audioBlob = null;
+    showAudioPanel(true);
+    updateAudioButtons();
+    startAudioTimer();
+    startWaveform(stream);
   } catch(e) {
     alert('Permissão de microfone negada. Verifique as configurações do navegador.');
   }
 }
 
-async function stopRecording() {
+// Pausa ou retoma a gravação
+function togglePauseAudio() {
   if (!mediaRecorder) return;
-  isRecording = false;
+  if (audioState === 'recording') {
+    mediaRecorder.pause();
+    stopWaveform();
+    stopAudioTimer();
+    audioState = 'paused';
+    updateAudioButtons();
+  } else if (audioState === 'paused') {
+    mediaRecorder.resume();
+    audioState = 'recording';
+    updateAudioButtons();
+    startAudioTimer();
+    startWaveform(mediaRecorder.stream);
+  }
+}
 
-  const btn = document.getElementById('btn-record');
-  const status = document.getElementById('audio-status');
-  if (btn) { btn.classList.remove('recording'); btn.textContent = '🎙️'; }
-  if (status) status.style.display = 'none';
-
+// Para a gravação e vai para o modo preview
+async function stopToPreview() {
+  if (!mediaRecorder) return;
+  stopWaveform();
+  stopAudioTimer();
   return new Promise(resolve => {
-    mediaRecorder.onstop = async () => {
-      const blob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
-      audioChunks = [];
-
-      // Para todas as tracks do stream
+    mediaRecorder.onstop = () => {
+      const mimeType = mediaRecorder.mimeType || 'audio/webm';
+      audioBlob = new Blob(audioChunks, { type: mimeType });
       mediaRecorder.stream?.getTracks().forEach(t => t.stop());
-
-      if (blob.size > 0 && activePhone && convInstId) {
-        await sendAudio(blob);
-      }
+      isRecording = false;
+      audioState = 'paused';
+      updateAudioButtons();
       resolve();
     };
-    mediaRecorder.stop();
+    if (mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    } else {
+      resolve();
+    }
   });
 }
 
-async function sendAudio(blob) {
-  try {
-    const formData = new FormData();
-    formData.append('audio', blob, 'audio.webm');
-    formData.append('phone', activePhone);
+// Ouve o áudio gravado antes de enviar
+function listenAudio() {
+  if (!audioBlob) {
+    stopToPreview().then(() => { if (audioBlob) playPreview(); });
+    return;
+  }
+  playPreview();
+}
 
-    const res = await fetch('/api/messages/' + convInstId + '/send-audio', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    await refreshMessages(activeContactId);
+function playPreview() {
+  const preview = getAudioPreview();
+  if (!preview || !audioBlob) return;
+  const url = URL.createObjectURL(audioBlob);
+  preview.src = url;
+  audioState = 'preview';
+  updateAudioButtons();
+  preview.play().catch(() => {});
+}
+
+// Descarta o áudio e volta ao estado inicial
+function cancelAudio() {
+  stopWaveform();
+  stopAudioTimer();
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    try { mediaRecorder.stop(); } catch(e) {}
+  }
+  if (mediaRecorder?.stream) {
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  audioChunks = [];
+  audioBlob = null;
+  audioState = 'idle';
+  isRecording = false;
+  showAudioPanel(false);
+  const preview = getAudioPreview();
+  if (preview) { preview.src = ''; preview.classList.remove('visible'); }
+}
+
+// Confirma e envia o áudio
+async function confirmSendAudio() {
+  if (audioState === 'recording' || audioState === 'paused') {
+    await stopToPreview();
+  }
+  if (!audioBlob || audioBlob.size === 0) {
+    alert('Nenhum áudio gravado.');
+    return;
+  }
+  if (!activePhone || !convInstId) {
+    alert('Selecione uma conversa primeiro.');
+    return;
+  }
+  const btn = document.getElementById('btn-send-audio');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+  try {
+    await sendAudio(audioBlob);
+    cancelAudio();
   } catch(e) {
     alert('Erro ao enviar áudio: ' + e.message);
+    if (btn) { btn.textContent = '✉ Enviar'; btn.disabled = false; }
   }
+}
+
+async function sendAudio(blob) {
+  const formData = new FormData();
+  formData.append('audio', blob, 'audio.webm');
+  formData.append('phone', activePhone);
+  const res = await fetch('/api/messages/' + convInstId + '/send-audio', {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  await refreshMessages(activeContactId);
+}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
