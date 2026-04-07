@@ -19,6 +19,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Trust proxy (Railway usa proxy reverso) ──────────────────────────────────
+app.set('trust proxy', 1);
+
 // ── Sessão ──────────────────────────────────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET || 'crm-tarot-secret-2026-xK9mP';
 
@@ -29,7 +32,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+    secure: true,       // Railway sempre usa HTTPS
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
   },
