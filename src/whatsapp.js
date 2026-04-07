@@ -1,9 +1,10 @@
-import makeWASocket, {
+import BaileysModule, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   downloadMediaMessage,
-  makeCacheableSignalKeyStore
+  makeCacheableSignalKeyStore,
+  makeWASocket as makeWASocketNamed
 } from '@whiskeysockets/baileys';
 import qrcode  from 'qrcode';
 import { db }  from './db.js';
@@ -11,6 +12,9 @@ import { botEngine } from './bot-engine.js';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+
+// Compatível com qualquer versão do Baileys (default export ou named export)
+const makeWASocket = makeWASocketNamed || BaileysModule?.makeWASocket || BaileysModule?.default || BaileysModule;
 
 const logger = pino({ level: 'silent' });
 
