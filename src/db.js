@@ -73,6 +73,22 @@ export async function initDB() {
       created_at      TIMESTAMPTZ DEFAULT NOW()
     );
 
+    -- Agentes de IA (Fábrica de Agentes)
+    CREATE TABLE IF NOT EXISTS ai_agents (
+      id              SERIAL PRIMARY KEY,
+      instance_id     INTEGER REFERENCES wa_instances(id) ON DELETE CASCADE,
+      name            VARCHAR(80)  NOT NULL,
+      avatar          VARCHAR(10)  DEFAULT '🤖',
+      system_prompt   TEXT         NOT NULL,
+      model           VARCHAR(60)  DEFAULT 'claude-haiku-4-5',
+      provider        VARCHAR(20)  DEFAULT 'anthropic',
+      api_key         TEXT,
+      flow_config     JSONB        DEFAULT '{}',
+      active          BOOLEAN      DEFAULT FALSE,
+      created_at      TIMESTAMPTZ  DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ  DEFAULT NOW()
+    );
+
     -- Jobs de remarketing
     CREATE TABLE IF NOT EXISTS remarketing_jobs (
       id            SERIAL PRIMARY KEY,
@@ -101,6 +117,9 @@ export async function initDB() {
     ALTER TABLE contacts ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(60);
     ALTER TABLE contacts ADD COLUMN IF NOT EXISTS preferred_spread VARCHAR(30);
     ALTER TABLE payments ADD COLUMN IF NOT EXISTS spread_type VARCHAR(30);
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS agent_id INTEGER REFERENCES ai_agents(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS idx_messages_agent ON messages(agent_id, sent_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_agents_instance ON ai_agents(instance_id, active);
   `);
 
   console.log('✅ Banco de dados pronto');

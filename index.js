@@ -10,6 +10,7 @@ import chatbotRouter   from './src/routes/chatbot.js';
 import messagesRouter  from './src/routes/messages.js';
 import dashboardRouter from './src/routes/dashboard.js';
 import webhookRouter   from './src/routes/webhook.js';
+import agentsRouter    from './src/routes/agents.js';
 import { initDB }      from './src/db.js';
 import { waManager }   from './src/whatsapp.js';
 import { requireAuth, loginHandler, logoutHandler } from './src/auth.js';
@@ -67,6 +68,7 @@ app.use('/api/chatbot',   chatbotRouter);
 app.use('/api/messages',  messagesRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/webhook',   webhookRouter);
+app.use('/api/agents',    agentsRouter);
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
 await initDB();

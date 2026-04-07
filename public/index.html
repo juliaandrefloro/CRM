@@ -153,6 +153,42 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2d2040; border-radius: 10px; }
+
+/* ── Fábrica de Agentes ── */
+.agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+.agent-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 14px; padding: 22px; position: relative; transition: border-color .2s; }
+.agent-card.is-active { border-color: #7c3aed; box-shadow: 0 0 0 1px #7c3aed44, 0 4px 20px #7c3aed22; }
+.agent-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.agent-avatar { width: 52px; height: 52px; border-radius: 12px; background: #2d1f4a; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+.agent-avatar.is-active { background: #4c1d95; }
+.agent-info { flex: 1; min-width: 0; }
+.agent-name { font-size: 17px; font-weight: 700; color: #e2d9f3; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+.agent-model { font-size: 12px; color: #6b4fa0; }
+.active-badge { display: inline-flex; align-items: center; gap: 4px; background: #14532d; color: #86efac; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+.active-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; display: inline-block; }
+.agent-prompt { font-size: 13px; color: #9f8ab8; line-height: 1.55; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.agent-stats { display: flex; gap: 14px; margin-bottom: 16px; }
+.agent-stat { text-align: center; }
+.agent-stat .val { font-size: 20px; font-weight: 700; color: #c9a8f0; }
+.agent-stat .lbl { font-size: 11px; color: #6b4fa0; }
+.agent-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-activate { background: #4c1d95; color: #c4b5fd; border: 1px solid #7c3aed; }
+.btn-activate:hover { background: #5b21b6; }
+.agent-empty { text-align: center; padding: 60px 20px; color: #4c3575; }
+.agent-empty .icon { font-size: 48px; margin-bottom: 12px; }
+.agent-empty p { font-size: 15px; margin-bottom: 20px; }
+.flow-section { background: #120e20; border: 1px solid #2d2040; border-radius: 10px; padding: 16px; margin-top: 14px; }
+.flow-section-title { font-size: 12px; color: #6b4fa0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; font-weight: 600; }
+.flow-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; color: #9f8ab8; }
+.toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #2d2040; border-radius: 20px; cursor: pointer; transition: .2s; }
+.toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #6b4fa0; border-radius: 50%; transition: .2s; }
+.toggle-switch input:checked + .toggle-slider { background: #4c1d95; }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); background: #a78bfa; }
+.modal-large { max-width: 700px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:600px){ .form-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -171,6 +207,9 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
   </div>
   <div class="nav-item" data-page="chatbot" onclick="navigate('chatbot',this)">
     <span class="nav-icon">🤖</span> Chatbot
+  </div>
+  <div class="nav-item" data-page="agents" onclick="navigate('agents',this)">
+    <span class="nav-icon">✨</span> Fábrica de Agentes
   </div>
   <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:10px;">
     <span>v2.0 · Tarot CRM</span>
@@ -225,6 +264,19 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
     <div class="tab-bar" id="bot-tabs"></div>
     <div id="bot-content"></div>
   </div>
+
+  <!-- ── Fábrica de Agentes ── -->
+  <div class="page" id="page-agents">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <h2 style="font-size:18px;color:#c9a8f0;margin-bottom:4px">✨ Fábrica de Agentes</h2>
+        <p style="font-size:13px;color:#6b4fa0">Crie, configure e gerencie seus bots de IA. O agente marcado como <strong style="color:#86efac">Ativo</strong> responde automaticamente no WhatsApp.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAgentModal()" style="flex-shrink:0">+ Novo Agente</button>
+    </div>
+    <div class="tab-bar" id="agent-tabs" style="margin-bottom:16px"></div>
+    <div id="agents-content"></div>
+  </div>
 </div>
 
 <!-- ═══ Modals ═══ -->
@@ -240,6 +292,103 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-add-inst')">Cancelar</button>
       <button class="btn btn-primary" onclick="addInstance()">Criar e Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Criar/Editar Agente -->
+<div class="modal-bg" id="modal-agent">
+  <div class="modal modal-large">
+    <h2 id="agent-modal-title">✨ Novo Agente de IA</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome do Agente *</label>
+        <input type="text" id="ag-name" placeholder="Ex: Lumina, Isis, Guardião...">
+        <div class="form-hint">Nome que identifica este agente no painel</div>
+      </div>
+      <div class="form-group">
+        <label>Avatar (emoji)</label>
+        <input type="text" id="ag-avatar" placeholder="🤖" maxlength="4" style="font-size:24px;text-align:center">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Prompt de Sistema (Personalidade) *</label>
+      <textarea id="ag-prompt" rows="7" placeholder="Descreva a personalidade, tom de voz, regras e comportamento deste agente...
+
+Ex: Você é Lumina, uma assistente mística acolhedora que atende clientes interessados em Tarot. Use linguagem calorosa, emojis com moderacão e sempre pergunte o nome do cliente na primeira mensagem..."></textarea>
+      <div class="form-hint">Este é o coracão do agente. Quanto mais detalhado, melhor o comportamento.</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Provedor de IA</label>
+        <select id="ag-provider" onchange="updateModelOptions()">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Modelo</label>
+        <select id="ag-model">
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 (rápido)</option>
+          <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (equilibrado)</option>
+          <option value="claude-opus-4-5">Claude Opus 4.5 (poderoso)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Chave de API personalizada <span style="color:#4c3575;font-weight:400">(opcional)</span></label>
+      <input type="password" id="ag-apikey" placeholder="Deixe vazio para usar a chave do servidor">
+      <div class="form-hint">Se preenchida, este agente usará sua própria chave de API. Caso contrário, usa a chave configurada no servidor.</div>
+    </div>
+
+    <div class="flow-section">
+      <div class="flow-section-title">⚙️ Configurações de Fluxo</div>
+
+      <div class="flow-toggle">
+        <label class="toggle-switch">
+          <input type="checkbox" id="ag-flow-payment" onchange="togglePaymentFields()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span>Habilitar fluxo de pagamento (Tarot)</span>
+      </div>
+
+      <div id="payment-fields" style="display:none">
+        <div class="flow-toggle" style="margin-top:8px">
+          <label class="toggle-switch">
+            <input type="checkbox" id="ag-flow-oracle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Habilitar leitura de Tarot (Oracle)</span>
+        </div>
+        <div class="form-group" style="margin-top:10px">
+          <label>Nome do Agente Oracle (para leituras)</label>
+          <input type="text" id="ag-oracle-name" placeholder="Ex: Isis">
+        </div>
+        <div class="form-group">
+          <label>Informações de Pagamento</label>
+          <textarea id="ag-payment-info" rows="4" placeholder="Dados do Pix, valores das tiragens..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-agent')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAgent()">Salvar Agente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Histórico do Agente -->
+<div class="modal-bg" id="modal-agent-history">
+  <div class="modal modal-large">
+    <h2 id="history-modal-title">📜 Histórico do Agente</h2>
+    <div id="history-content" style="max-height:400px;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-agent-history')">Fechar</button>
     </div>
   </div>
 </div>
@@ -302,7 +451,7 @@ function navigate(page, el) {
   if (el) el.classList.add('active');
 
   document.getElementById('topbar-title').textContent = {
-    dashboard: 'Dashboard', instances: 'WhatsApp', conversations: 'Conversas', chatbot: 'Chatbot'
+    dashboard: 'Dashboard', instances: 'WhatsApp', conversations: 'Conversas', chatbot: 'Chatbot', agents: 'Fábrica de Agentes'
   }[page] || page;
 
   // Limpa pollers ao sair
@@ -314,6 +463,7 @@ function navigate(page, el) {
   if (page === 'instances')     loadInstances();
   if (page === 'conversations') loadConvTabs();
   if (page === 'chatbot')       loadBotTabs();
+  if (page === 'agents')        loadAgentTabs();
 }
 
 // Inicializa navegação nos itens da sidebar
@@ -746,6 +896,236 @@ async function sendAudio(blob) {
   } catch(e) {
     alert('Erro ao enviar áudio: ' + e.message);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Fábrica de Agentes
+// ══════════════════════════════════════════════════════════════════════════════
+let agentInstId  = null;
+let editAgentId  = null;
+
+async function loadAgentTabs() {
+  const insts = await api('/api/instances');
+  const bar   = document.getElementById('agent-tabs');
+  if (!insts.length) {
+    bar.innerHTML = '<span style="color:#4c3575;font-size:13px">Nenhuma instância criada. Crie uma instância WhatsApp primeiro.</span>';
+    document.getElementById('agents-content').innerHTML = '';
+    return;
+  }
+  bar.innerHTML = insts.map(i =>
+    `<div class="tab ${agentInstId==i.id?'active':''}" onclick="selectAgentInst(${i.id},this)">${esc(i.name)}</div>`
+  ).join('');
+  if (!agentInstId && insts.length) selectAgentInst(insts[0].id, bar.firstChild);
+}
+
+async function selectAgentInst(id, el) {
+  agentInstId = id;
+  document.querySelectorAll('#agent-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  await loadAgents();
+}
+
+async function loadAgents() {
+  if (!agentInstId) return;
+  const agents = await api('/api/agents/' + agentInstId);
+  const box    = document.getElementById('agents-content');
+
+  if (!Array.isArray(agents) || !agents.length) {
+    box.innerHTML = `
+      <div class="agent-empty">
+        <div class="icon">✨</div>
+        <p>Nenhum agente criado ainda.<br>Crie seu primeiro agente de IA para começar.</p>
+        <button class="btn btn-primary" onclick="openAgentModal()">+ Criar Primeiro Agente</button>
+      </div>`;
+    return;
+  }
+
+  // Busca estatísticas de cada agente em paralelo
+  const statsArr = await Promise.all(agents.map(a =>
+    api('/api/agents/' + a.id + '/stats').catch(() => ({}))
+  ));
+
+  box.innerHTML = `<div class="agents-grid">` +
+    agents.map((a, i) => agentCard(a, statsArr[i] || {})).join('') +
+  `</div>`;
+}
+
+function agentCard(a, stats) {
+  const isActive = a.active;
+  const modelLabel = {
+    'claude-haiku-4-5': 'Claude Haiku 4.5',
+    'claude-sonnet-4-5': 'Claude Sonnet 4.5',
+    'claude-opus-4-5': 'Claude Opus 4.5',
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-4o': 'GPT-4o',
+    'gpt-4.1-mini': 'GPT-4.1 Mini',
+    'gpt-4.1': 'GPT-4.1'
+  }[a.model] || a.model;
+  const providerLabel = a.provider === 'openai' ? '🟢 OpenAI' : '🟣 Anthropic';
+
+  return `
+    <div class="agent-card ${isActive ? 'is-active' : ''}" id="agent-card-${a.id}">
+      <div class="agent-card-header">
+        <div class="agent-avatar ${isActive ? 'is-active' : ''}">${esc(a.avatar || '🤖')}</div>
+        <div class="agent-info">
+          <div class="agent-name">
+            ${esc(a.name)}
+            ${isActive ? '<span class="active-badge">✔ Ativo</span>' : ''}
+          </div>
+          <div class="agent-model">${providerLabel} &middot; ${modelLabel} ${a.has_custom_key ? '&middot; 🔑 Chave própria' : ''}</div>
+        </div>
+      </div>
+
+      <div class="agent-prompt" title="${esc(a.system_prompt)}">${esc(a.system_prompt)}</div>
+
+      <div class="agent-stats">
+        <div class="agent-stat"><div class="val">${stats.responses_sent ?? '–'}</div><div class="lbl">Respostas</div></div>
+        <div class="agent-stat"><div class="val">${stats.unique_contacts ?? '–'}</div><div class="lbl">Contatos</div></div>
+        <div class="agent-stat"><div class="val">${stats.messages_received ?? '–'}</div><div class="lbl">Msgs recebidas</div></div>
+        <div class="agent-stat" style="flex:1;text-align:right">
+          <div class="val" style="font-size:11px;color:#6b4fa0;font-weight:400">${stats.last_used ? fmtTime(stats.last_used) : 'Nunca usado'}</div>
+          <div class="lbl">Ultimo uso</div>
+        </div>
+      </div>
+
+      <div class="agent-actions">
+        ${!isActive ? `<button class="btn btn-sm btn-activate" onclick="activateAgent(${a.id})">&#9654; Ativar</button>` : ''}
+        <button class="btn btn-sm btn-outline" onclick="openAgentModal(${a.id})">&#9998; Editar</button>
+        <button class="btn btn-sm btn-outline" onclick="viewAgentHistory(${a.id}, '${esc(a.name)}')">&#128196; Histórico</button>
+        ${!isActive ? `<button class="btn btn-sm btn-danger" onclick="deleteAgent(${a.id})">&#128465; Excluir</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function activateAgent(id) {
+  const r = await api('/api/agents/' + id + '/activate', 'POST');
+  if (r.error) return alert('Erro: ' + r.error);
+  await loadAgents();
+}
+
+async function deleteAgent(id) {
+  if (!confirm('Excluir este agente? Esta ação não pode ser desfeita.')) return;
+  const r = await api('/api/agents/' + id, 'DELETE');
+  if (r.error) return alert('Erro: ' + r.error);
+  await loadAgents();
+}
+
+async function viewAgentHistory(id, name) {
+  document.getElementById('history-modal-title').textContent = `📜 Histórico — ${name}`;
+  document.getElementById('history-content').innerHTML = '<div style="color:#4c3575;text-align:center;padding:20px">Carregando...</div>';
+  openModal('modal-agent-history');
+
+  const rows = await api('/api/agents/' + id + '/history?limit=100');
+  if (!rows.length) {
+    document.getElementById('history-content').innerHTML = '<div style="color:#4c3575;text-align:center;padding:30px">Nenhuma mensagem registrada ainda.</div>';
+    return;
+  }
+
+  document.getElementById('history-content').innerHTML = rows.map(m => `
+    <div style="padding:10px 0;border-bottom:1px solid #2d2040">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span class="badge ${m.role==='user'?'badge-blue':'badge-green'}">${m.role==='user'?'👤 Cliente':'🤖 Agente'}</span>
+        <span style="font-size:11px;color:#4c3575">${esc(m.contact_name||m.phone)} &middot; ${fmtFull(m.sent_at)}</span>
+      </div>
+      <div style="font-size:13px;color:#e2d9f3;line-height:1.5;white-space:pre-wrap">${esc(m.content)}</div>
+    </div>`).join('');
+}
+
+function openAgentModal(id) {
+  editAgentId = id || null;
+  document.getElementById('agent-modal-title').textContent = id ? '✏️ Editar Agente' : '✨ Novo Agente de IA';
+
+  // Limpa o form
+  ['ag-name','ag-avatar','ag-prompt','ag-apikey','ag-oracle-name','ag-payment-info'].forEach(f => {
+    const el = document.getElementById(f);
+    if (el) el.value = '';
+  });
+  document.getElementById('ag-provider').value = 'anthropic';
+  document.getElementById('ag-flow-payment').checked = false;
+  document.getElementById('ag-flow-oracle').checked  = false;
+  document.getElementById('payment-fields').style.display = 'none';
+  updateModelOptions();
+
+  if (id) {
+    // Carrega dados do agente para edição
+    api('/api/agents/detail/' + id).then(a => {
+      if (!a || a.error) return;
+      document.getElementById('ag-name').value   = a.name   || '';
+      document.getElementById('ag-avatar').value = a.avatar || '';
+      document.getElementById('ag-prompt').value = a.system_prompt || '';
+      document.getElementById('ag-provider').value = a.provider || 'anthropic';
+      updateModelOptions();
+      document.getElementById('ag-model').value  = a.model  || 'claude-haiku-4-5';
+
+      const fc = a.flow_config || {};
+      document.getElementById('ag-flow-payment').checked = !!fc.enable_payment_flow;
+      document.getElementById('ag-flow-oracle').checked  = !!fc.enable_oracle;
+      document.getElementById('ag-oracle-name').value    = fc.oracle_agent_name || '';
+      document.getElementById('ag-payment-info').value   = fc.payment_info || '';
+      document.getElementById('payment-fields').style.display = fc.enable_payment_flow ? 'block' : 'none';
+    });
+  }
+
+  openModal('modal-agent');
+}
+
+function togglePaymentFields() {
+  const checked = document.getElementById('ag-flow-payment').checked;
+  document.getElementById('payment-fields').style.display = checked ? 'block' : 'none';
+}
+
+function updateModelOptions() {
+  const provider = document.getElementById('ag-provider').value;
+  const sel      = document.getElementById('ag-model');
+  const current  = sel.value;
+
+  const anthropicModels = [
+    { v: 'claude-haiku-4-5',   l: 'Claude Haiku 4.5 (rápido — recomendado)' },
+    { v: 'claude-sonnet-4-5',  l: 'Claude Sonnet 4.5 (equilibrado)' },
+    { v: 'claude-opus-4-5',    l: 'Claude Opus 4.5 (mais poderoso)' },
+  ];
+  const openaiModels = [
+    { v: 'gpt-4.1-mini', l: 'GPT-4.1 Mini (rápido — recomendado)' },
+    { v: 'gpt-4.1',      l: 'GPT-4.1 (equilibrado)' },
+    { v: 'gpt-4o-mini',  l: 'GPT-4o Mini' },
+    { v: 'gpt-4o',       l: 'GPT-4o' },
+  ];
+
+  const models = provider === 'openai' ? openaiModels : anthropicModels;
+  sel.innerHTML = models.map(m => `<option value="${m.v}" ${m.v===current?'selected':''}>${m.l}</option>`).join('');
+}
+
+async function saveAgent() {
+  const name        = document.getElementById('ag-name').value.trim();
+  const avatar      = document.getElementById('ag-avatar').value.trim() || '🤖';
+  const system_prompt = document.getElementById('ag-prompt').value.trim();
+  const provider    = document.getElementById('ag-provider').value;
+  const model       = document.getElementById('ag-model').value;
+  const api_key     = document.getElementById('ag-apikey').value.trim() || null;
+
+  if (!name)          return alert('O nome do agente é obrigatório');
+  if (!system_prompt) return alert('O Prompt de Sistema é obrigatório');
+
+  const flow_config = {
+    enable_payment_flow: document.getElementById('ag-flow-payment').checked,
+    enable_oracle:       document.getElementById('ag-flow-oracle').checked,
+    oracle_agent_name:   document.getElementById('ag-oracle-name').value.trim(),
+    payment_info:        document.getElementById('ag-payment-info').value.trim(),
+  };
+
+  const payload = { name, avatar, system_prompt, provider, model, flow_config };
+  if (api_key) payload.api_key = api_key;
+
+  let r;
+  if (editAgentId) {
+    r = await api('/api/agents/' + editAgentId, 'PUT', payload);
+  } else {
+    r = await api('/api/agents/' + agentInstId, 'POST', payload);
+  }
+
+  if (r.error) return alert('Erro ao salvar: ' + r.error);
+  closeModal('modal-agent');
+  await loadAgents();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
