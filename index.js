@@ -11,8 +11,9 @@ import messagesRouter  from './src/routes/messages.js';
 import dashboardRouter from './src/routes/dashboard.js';
 import webhookRouter   from './src/routes/webhook.js';
 import agentsRouter    from './src/routes/agents.js';
-import { initDB }      from './src/db.js';
+import { initDB, db }  from './src/db.js';
 import { waManager }   from './src/whatsapp.js';
+import { botEngine }   from './src/bot-engine.js';
 import { requireAuth, loginHandler, logoutHandler } from './src/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -80,3 +81,21 @@ app.listen(PORT, () => {
 
 // Reconecta instâncias ativas ao reiniciar
 waManager.reconnectAll();
+
+// ── Cron de Remarketing (a cada 5 minutos) ──────────────────────────────────
+// Verifica jobs de remarketing pendentes e envia mensagens para clientes
+// que ficaram 30 minutos sem pagar após escolher uma tiragem.
+setInterval(async () => {
+  try {
+    const { rows: instances } = await db.query(
+      `SELECT id FROM wa_instances WHERE status = 'connected'`
+    );
+    for (const inst of instances) {
+      await botEngine.processRemarketingJobs(inst.id);
+    }
+  } catch(e) {
+    console.error('[REMARKETING CRON ERROR]', e.message);
+  }
+}, 5 * 60 * 1000); // a cada 5 minutos
+
+console.log('⏰ Cron de remarketing ativo (verifica a cada 5 min)');

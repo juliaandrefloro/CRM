@@ -156,6 +156,17 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
 
 /* ── Fábrica de Agentes ── */
 .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+/* Role badges */
+.role-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+.role-greeter { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb44; }
+.role-seller  { background: #1a3320; color: #86efac; border: 1px solid #16a34a44; }
+.role-oracle  { background: #3b1f5e; color: #c4b5fd; border: 1px solid #7c3aed44; }
+/* Funil de estágios */
+.funnel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.funnel-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 10px; padding: 12px; text-align: center; }
+.funnel-card .fval { font-size: 22px; font-weight: 700; color: #c9a8f0; }
+.funnel-card .flbl { font-size: 11px; color: #6b4fa0; margin-top: 2px; }
+.funnel-card .factive { font-size: 10px; color: #86efac; margin-top: 2px; }
 .agent-card { background: #1a1428; border: 1px solid #2d2040; border-radius: 14px; padding: 22px; position: relative; transition: border-color .2s; }
 .agent-card.is-active { border-color: #7c3aed; box-shadow: 0 0 0 1px #7c3aed44, 0 4px 20px #7c3aed22; }
 .agent-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
@@ -270,11 +281,15 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div>
         <h2 style="font-size:18px;color:#c9a8f0;margin-bottom:4px">✨ Fábrica de Agentes</h2>
-        <p style="font-size:13px;color:#6b4fa0">Crie, configure e gerencie seus bots de IA. O agente marcado como <strong style="color:#86efac">Ativo</strong> responde automaticamente no WhatsApp.</p>
+        <p style="font-size:13px;color:#6b4fa0">3 agentes especializados trabalham em equipe: <span class="role-badge role-greeter">1 Saudção</span> <span class="role-badge role-seller">2 Vendas</span> <span class="role-badge role-oracle">3 Oracle</span> &mdash; cada um assume o controle no momento certo.</p>
       </div>
-      <button class="btn btn-primary" onclick="openAgentModal()" style="flex-shrink:0">+ Novo Agente</button>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn btn-outline" onclick="seedDefaultAgents()" title="Cria os 3 agentes padrão (Lumina, Lumina Vendas, Isis)">&#9881; Criar Agentes Padrão</button>
+        <button class="btn btn-primary" onclick="openAgentModal()">+ Novo Agente</button>
+      </div>
     </div>
     <div class="tab-bar" id="agent-tabs" style="margin-bottom:16px"></div>
+    <div id="funnel-content" style="margin-bottom:8px"></div>
     <div id="agents-content"></div>
   </div>
 </div>
@@ -319,6 +334,23 @@ code { background: #0f0c1a; padding: 1px 6px; border-radius: 4px; font-size: 12p
 
 Ex: Você é Lumina, uma assistente mística acolhedora que atende clientes interessados em Tarot. Use linguagem calorosa, emojis com moderacão e sempre pergunte o nome do cliente na primeira mensagem..."></textarea>
       <div class="form-hint">Este é o coracão do agente. Quanto mais detalhado, melhor o comportamento.</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Papel no Fluxo (Agent Role)</label>
+        <select id="ag-role">
+          <option value="greeter">&#127757; Agente 1 — Saudação e Triagem</option>
+          <option value="seller">&#128179; Agente 2 — Pagamento e Vendas</option>
+          <option value="oracle">&#128302; Agente 3 — Entrega do Jogo (Oracle)</option>
+        </select>
+        <div class="form-hint">Define em qual etapa do fluxo este agente entra automaticamente</div>
+      </div>
+      <div class="form-group">
+        <label>Ordem de Prioridade</label>
+        <input type="number" id="ag-sort-order" value="99" min="1" max="99" style="width:80px">
+        <div class="form-hint">Menor número = maior prioridade quando há múltiplos agentes com mesmo papel</div>
+      </div>
     </div>
 
     <div class="form-row">
@@ -929,13 +961,40 @@ async function loadAgents() {
   if (!agentInstId) return;
   const agents = await api('/api/agents/' + agentInstId);
   const box    = document.getElementById('agents-content');
+  const funnel = document.getElementById('funnel-content');
+
+  // Carrega funil de estágios
+  const stages = await api('/api/agents/' + agentInstId + '/funnel/stages').catch(() => []);
+  if (Array.isArray(stages) && stages.length) {
+    const stageLabels = {
+      greeting: 'Saudação', collecting_name: 'Coletando Nome',
+      choosing_area: 'Escolhendo Área', choosing_spread: 'Escolhendo Tiragem',
+      pending_payment: 'Aguard. Pagamento', awaiting_question: 'Aguard. Pergunta',
+      delivering_reading: 'Entregando Leitura', post_reading: 'Pós-Leitura'
+    };
+    funnel.innerHTML = `
+      <div style="font-size:11px;color:#6b4fa0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📊 Funil de Clientes por Estágio</div>
+      <div class="funnel-grid">
+        ${stages.map(s => `
+          <div class="funnel-card">
+            <div class="fval">${s.count}</div>
+            <div class="flbl">${stageLabels[s.current_stage] || s.current_stage}</div>
+            ${parseInt(s.active_today) > 0 ? `<div class="factive">▲ ${s.active_today} hoje</div>` : ''}
+          </div>`).join('')}
+      </div>`;
+  } else {
+    funnel.innerHTML = '';
+  }
 
   if (!Array.isArray(agents) || !agents.length) {
     box.innerHTML = `
       <div class="agent-empty">
         <div class="icon">✨</div>
-        <p>Nenhum agente criado ainda.<br>Crie seu primeiro agente de IA para começar.</p>
-        <button class="btn btn-primary" onclick="openAgentModal()">+ Criar Primeiro Agente</button>
+        <p>Nenhum agente criado ainda.<br>Clique em <strong>⚙ Criar Agentes Padrão</strong> para instalar os 3 agentes do sistema (Lumina, Lumina Vendas e Isis) ou crie um agente personalizado.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="seedDefaultAgents()">⚙ Criar Agentes Padrão</button>
+          <button class="btn btn-primary" onclick="openAgentModal()">+ Criar Agente Personalizado</button>
+        </div>
       </div>`;
     return;
   }
@@ -948,6 +1007,16 @@ async function loadAgents() {
   box.innerHTML = `<div class="agents-grid">` +
     agents.map((a, i) => agentCard(a, statsArr[i] || {})).join('') +
   `</div>`;
+}
+
+async function seedDefaultAgents() {
+  if (!agentInstId) return alert('Selecione uma instância WhatsApp primeiro.');
+  if (!confirm('Criar os 3 agentes padrão (Lumina, Lumina Vendas e Isis) para esta instância?')) return;
+  const r = await api('/api/agents/' + agentInstId + '/seed', 'POST');
+  if (r.error) return alert('Erro: ' + r.error);
+  if (!r.ok) return alert(r.message || 'Não foi possível criar os agentes padrão.');
+  alert('✅ 3 agentes criados com sucesso! Lumina (Saudação), Lumina Vendas (Pagamento) e Isis (Oracle).');
+  await loadAgents();
 }
 
 function agentCard(a, stats) {
@@ -963,6 +1032,12 @@ function agentCard(a, stats) {
   }[a.model] || a.model;
   const providerLabel = a.provider === 'openai' ? '🟢 OpenAI' : '🟣 Anthropic';
 
+  const roleInfo = {
+    greeter: { label: 'Agente 1 — Saudação', cls: 'role-greeter', icon: '🌍' },
+    seller:  { label: 'Agente 2 — Vendas',   cls: 'role-seller',  icon: '💳' },
+    oracle:  { label: 'Agente 3 — Oracle',   cls: 'role-oracle',  icon: '🔮' },
+  }[a.agent_role] || { label: a.agent_role || 'Geral', cls: 'role-greeter', icon: '🤖' };
+
   return `
     <div class="agent-card ${isActive ? 'is-active' : ''}" id="agent-card-${a.id}">
       <div class="agent-card-header">
@@ -972,7 +1047,10 @@ function agentCard(a, stats) {
             ${esc(a.name)}
             ${isActive ? '<span class="active-badge">✔ Ativo</span>' : ''}
           </div>
-          <div class="agent-model">${providerLabel} &middot; ${modelLabel} ${a.has_custom_key ? '&middot; 🔑 Chave própria' : ''}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <span class="role-badge ${roleInfo.cls}">${roleInfo.icon} ${roleInfo.label}</span>
+          </div>
+          <div class="agent-model" style="margin-top:4px">${providerLabel} &middot; ${modelLabel} ${a.has_custom_key ? '&middot; 🔑 Chave própria' : ''}</div>
         </div>
       </div>
 
@@ -1040,7 +1118,9 @@ function openAgentModal(id) {
     const el = document.getElementById(f);
     if (el) el.value = '';
   });
-  document.getElementById('ag-provider').value = 'anthropic';
+  document.getElementById('ag-provider').value    = 'anthropic';
+  document.getElementById('ag-role').value        = 'greeter';
+  document.getElementById('ag-sort-order').value  = '99';
   document.getElementById('ag-flow-payment').checked = false;
   document.getElementById('ag-flow-oracle').checked  = false;
   document.getElementById('payment-fields').style.display = 'none';
@@ -1050,10 +1130,12 @@ function openAgentModal(id) {
     // Carrega dados do agente para edição
     api('/api/agents/detail/' + id).then(a => {
       if (!a || a.error) return;
-      document.getElementById('ag-name').value   = a.name   || '';
-      document.getElementById('ag-avatar').value = a.avatar || '';
-      document.getElementById('ag-prompt').value = a.system_prompt || '';
-      document.getElementById('ag-provider').value = a.provider || 'anthropic';
+      document.getElementById('ag-name').value       = a.name   || '';
+      document.getElementById('ag-avatar').value     = a.avatar || '';
+      document.getElementById('ag-prompt').value     = a.system_prompt || '';
+      document.getElementById('ag-provider').value   = a.provider || 'anthropic';
+      document.getElementById('ag-role').value       = a.agent_role || 'greeter';
+      document.getElementById('ag-sort-order').value = a.sort_order || 99;
       updateModelOptions();
       document.getElementById('ag-model').value  = a.model  || 'claude-haiku-4-5';
 
@@ -1113,7 +1195,10 @@ async function saveAgent() {
     payment_info:        document.getElementById('ag-payment-info').value.trim(),
   };
 
-  const payload = { name, avatar, system_prompt, provider, model, flow_config };
+  const agent_role  = document.getElementById('ag-role').value || 'greeter';
+  const sort_order  = parseInt(document.getElementById('ag-sort-order').value) || 99;
+
+  const payload = { name, avatar, system_prompt, provider, model, flow_config, agent_role, sort_order };
   if (api_key) payload.api_key = api_key;
 
   let r;

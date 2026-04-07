@@ -122,5 +122,35 @@ export async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_agents_instance ON ai_agents(instance_id, active);
   `);
 
-  console.log('✅ Banco de dados pronto');
+  // Migrações v3 — Sistema de 3 Agentes com current_stage
+  await db.query(`
+    -- current_stage controla qual dos 3 agentes responde a cada momento
+    -- Estágios do fluxo:
+    --   greeting         -> Agente 1 (Saudção/Triage): primeiro contato
+    --   collecting_name  -> Agente 1: aguardando nome
+    --   choosing_area    -> Agente 1: escolhendo área de vida
+    --   choosing_spread  -> Agente 1: apresentando tiragens
+    --   pending_payment  -> Agente 2 (Vendas): aguardando pagamento
+    --   awaiting_question-> Agente 3 (Oracle): aguardando pergunta
+    --   delivering_reading-> Agente 3: entregando leitura
+    --   post_reading     -> Agente 1: pós-leitura / nova consulta
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS current_stage VARCHAR(40) DEFAULT 'greeting';
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS remarketing_count INTEGER DEFAULT 0;
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS last_remarketing_at TIMESTAMPTZ;
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS chosen_spread VARCHAR(30);
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS chosen_amount NUMERIC(10,2);
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS pending_payment_since TIMESTAMPTZ;
+
+    -- agent_role define o papel do agente no fluxo de 3 agentes
+    -- Valores: 'greeter' (Agente 1), 'seller' (Agente 2), 'oracle' (Agente 3)
+    ALTER TABLE ai_agents ADD COLUMN IF NOT EXISTS agent_role VARCHAR(20) DEFAULT 'greeter';
+    ALTER TABLE ai_agents ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+    -- Índices adicionais
+    CREATE INDEX IF NOT EXISTS idx_contacts_stage ON contacts(instance_id, current_stage);
+    CREATE INDEX IF NOT EXISTS idx_remarketing_pending ON remarketing_jobs(status, scheduled_at)
+      WHERE status = 'pending';
+  `);
+
+  console.log('✅ Banco de dados pronto (v3 — sistema de 3 agentes)');
 }
